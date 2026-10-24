@@ -9,6 +9,7 @@ import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
 import Attachments from '../components/Attachments'
+import { Description, MarkdownField } from '../components/Markdown'
 import Discussion from '../components/Discussion'
 import IdeaBoard from '../components/IdeaBoard'
 import { useMedia } from '../media'
@@ -59,7 +60,7 @@ export default function IdeaDetail() {
       <section className="hero" style={{ background: IDEA_COLOR[data.status] === '#ffffff' ? '#eef0f5' : IDEA_COLOR[data.status] }}>
         <div className="hero-main">
           <h1>{data.title}</h1>
-          <p>{data.description || 'No description yet — hit edit and say what this is.'}</p>
+          <Description text={data.description} lines={4} empty="No description yet — hit edit and say what this is." />
           <div className="hero-meta">
             <select value={data.status} onChange={(e) => patch.mutate({ status: e.target.value })}>{IDEA_STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
             <span className="chip">started by {data.owner_name}</span>
@@ -123,7 +124,7 @@ export default function IdeaDetail() {
         <Modal title="Edit idea" onClose={() => setEdit(false)}>
           <form onSubmit={saveEdit}>
             <input name="title" defaultValue={data.title} required autoFocus />
-            <textarea name="description" rows={5} defaultValue={data.description} placeholder="Description" />
+            <MarkdownField name="description" rows={9} defaultValue={data.description} placeholder="Describe the idea — links, lists and **bold** work." />
             <button className="btn" disabled={patch.isPending}>Save</button>
           </form>
         </Modal>

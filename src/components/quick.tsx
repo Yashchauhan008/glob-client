@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { EVENT_KINDS, IDEA_STATUSES, type Idea, type Lead } from '../types'
 import { Modal } from './ui'
+import { MarkdownField } from './Markdown'
 import LeadForm from './LeadForm'
 import { AttachDraft, emptyDraft, saveDraft, type AttachEntity, type Draft } from './Attachments'
 
@@ -62,7 +63,7 @@ export function QuickProvider({ children }: { children: ReactNode }) {
           ) : (
             <form onSubmit={submit}>
               <input name="title" placeholder={state.kind === 'question' ? 'What do you want to know?' : 'Title'} required autoFocus />
-              {state.kind === 'idea' && <><textarea name="description" placeholder="Describe the idea" rows={4} /><select name="status">{IDEA_STATUSES.map((s) => <option key={s}>{s}</option>)}</select><AttachDraft draft={draft} setDraft={setDraft} /></>}
+              {state.kind === 'idea' && <><MarkdownField name="description" placeholder="Describe the idea (Markdown works)" rows={5} /><select name="status">{IDEA_STATUSES.map((s) => <option key={s}>{s}</option>)}</select><AttachDraft draft={draft} setDraft={setDraft} /></>}
               {state.kind === 'question' && <><textarea name="body" placeholder="Details (optional)" rows={3} />{ideaSelect}<AttachDraft draft={draft} setDraft={setDraft} /></>}
               {state.kind === 'todo' && <><input name="date" type="date" defaultValue={state.opts.date} />{ideaSelect}</>}
               {state.kind === 'event' && (

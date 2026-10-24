@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, ImagePlus, Link2, X } from 'lucide-react'
 import { api, uploadImage, uploadThumbnail } from '../api'
 import { Modal } from './ui'
+import { faviconUrl, fileUrl } from '../files'
 
 export type AttachEntity = 'idea' | 'note' | 'question' | 'todo' | 'event' | 'lead'
 export type Attachment = { id: string; kind: 'link' | 'image'; url: string; title: string; thumb_url?: string | null; created_at?: string; owner_name?: string }
@@ -24,8 +25,8 @@ export function describeLink(url: string) {
     const host = u.hostname.replace(/^www\./, '')
     const site = SITES.find(([re]) => re.test(host))
     const path = (u.pathname + u.search).replace(/\/$/, '')
-    return { host, label: site?.[1] ?? host, bg: site?.[2] ?? '#5b5b66', path: path.length > 1 ? path : '' }
-  } catch { return { host: url, label: 'Link', bg: '#5b5b66', path: '' } }
+    return { host, label: site?.[1] ?? host, bg: site?.[2] ?? '#5b5b66', path: path.length > 1 ? path : '', known: !!site }
+  } catch { return { host: url, label: 'Link', bg: '#5b5b66', path: '', known: false } }
 }
 
 export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' | 'title' | 'thumb_url'>; onRemove?: () => void; onThumb?: (f: File) => void }) {
@@ -36,8 +37,10 @@ export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' |
     <div className="att-link">
       <a href={href} target="_blank" rel="noreferrer noopener">
         {a.thumb_url
-          ? <span className="att-pic"><img src={a.thumb_url} alt="" loading="lazy" /></span>
-          : <span className="att-badge" style={{ background: d.bg }}>{d.label.slice(0, 2).toUpperCase()}</span>}
+          ? <span className="att-pic"><img src={fileUrl(a.thumb_url)} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none' }} /></span>
+          : d.known
+            ? <span className="att-badge" style={{ background: d.bg }}>{d.label.slice(0, 2).toUpperCase()}</span>
+            : <span className="att-fav"><img src={faviconUrl(a.url)} alt="" width={22} height={22} onError={(e) => { e.currentTarget.style.display = 'none' }} /></span>}
         <span className="att-text"><b>{a.title || d.label}</b><small>{d.host}{d.path}</small></span>
         <ExternalLink size={15} />
       </a>
@@ -109,7 +112,7 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
         <div className="att-grid">
           {images.map((a) => (
             <div key={a.id} className="att-thumb">
-              <button type="button" onClick={() => setOpen(a.url)} aria-label="Open image"><img src={a.url} alt="" loading="lazy" /></button>
+              <button type="button" onClick={() => setOpen(fileUrl(a.url))} aria-label="Open image"><img src={fileUrl(a.url)} alt="" loading="lazy" /></button>
               {editable && <button type="button" className="att-x" aria-label="Remove" onClick={() => del.mutate(a.id)}><X size={14} /></button>}
             </div>
           ))}

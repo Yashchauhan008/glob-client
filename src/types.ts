@@ -11,7 +11,7 @@ export type Idea = {
   attachments?: number; cover?: string | null
 }
 export type Product = {
-  id: string; name: string; url: string; status: (typeof PRODUCT_STATUSES)[number]
+  id: string; name: string; url: string; description?: string; status: (typeof PRODUCT_STATUSES)[number]
   idea_id: string | null; idea_title: string | null
 }
 export type Todo = {

@@ -1,3 +1,4 @@
+import { fileUrl, plain } from '../files'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -43,9 +44,9 @@ export default function Ideas() {
           <div className={'ideas ' + view}>
             {shown.map((i) => (
               <Link key={i.id} to={`/ideas/${i.id}`} className={'idea status-' + i.status} style={{ '--c': IDEA_COLOR[i.status] } as React.CSSProperties}>
-                {i.cover && <img className="idea-cover" src={i.cover} alt="" loading="lazy" />}
+                {i.cover && <img className="idea-cover" src={fileUrl(i.cover)} alt="" loading="lazy" />}
                 <h3>{i.title}</h3>
-                <p>{i.description || 'No description yet.'}</p>
+                <p>{plain(i.description) || 'No description yet.'}</p>
                 <Meter value={i.feasibility} votes={i.votes} />
                 <div className="idea-foot">
                   <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
