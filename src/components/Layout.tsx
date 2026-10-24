@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, Home, Lightbulb, LogOut, Menu, MessageCircle, Package, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
 import Logo from './Logo'
@@ -17,6 +17,7 @@ const NAV = [
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/leads', label: 'CRM', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/activity', label: 'Activity', icon: History },
 ]
 
 function Dock({ toggleChat }: { toggleChat: () => void }) {

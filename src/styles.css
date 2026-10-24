@@ -419,3 +419,13 @@ img, svg, video { max-width: 100%; }
 .or { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 12px; margin: 22px 0 16px; } .or::before, .or::after { content: ''; flex: 1; height: 1px; background: #e4e4de; }
 .google-box { display: flex; justify-content: center; min-height: 44px; } .google-box.loading { opacity: 0; }
 .auth-form .form-err + .or, .auth-form .form-err { margin-bottom: 0; }
+
+/* ---------- activity ---------- */
+.act-filters { flex-wrap: wrap; width: fit-content; max-width: 100%; margin-bottom: 20px; border-radius: 24px; }
+.act-day h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 18px 4px 8px; }
+.act-list { padding: 8px 20px; }
+.act-row { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #f0f0ea; } .act-row:last-child { border: 0; }
+.act-av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 12px; color: #111; flex: none; }
+.act-main { flex: 1; min-width: 0; } .act-main p { font-size: 14px; line-height: 1.45; } .act-main a { font-weight: 700; word-break: break-word; }
+.act-detail { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; background: var(--side); padding: 8px 12px; border-radius: 12px; }
+.act-row time { color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 3px; }
