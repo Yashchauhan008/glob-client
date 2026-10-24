@@ -363,7 +363,6 @@ img, svg, video { max-width: 100%; }
 .auth-form .btn { justify-content: center; padding: 15px 22px; font-size: 15px; margin-top: 4px; }
 .auth-form .muted a { color: var(--ink); font-weight: 700; }
 .auth-brand { display: none; margin-bottom: 18px; }
-.auth-brand .logo-mark rect { fill: var(--ink); } .auth-brand .logo-mark circle:first-of-type { fill: #f8f8f5; } .auth-brand .logo-mark ellipse, .auth-brand .logo-mark path { stroke: var(--ink); } .auth-brand .logo-mark circle:last-of-type { stroke: var(--ink); }
 
 @media (max-width: 760px) {
   .auth-card { min-height: 0; } .auth-side { display: none; } .auth-brand { display: block; }
