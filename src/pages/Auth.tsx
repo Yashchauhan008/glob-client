@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import Logo from '../components/Logo'
 import type { User } from '../types'
 
 type AuthRes = { token: string; user: User }
@@ -10,8 +11,23 @@ function Shell({ title, sub, children }: { title: string; sub: string; children:
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-side"><div className="logo">glob</div><p>Plan ideas, track products, close leads — together.</p></div>
-        <div className="auth-form"><h1>{title}</h1><p className="muted">{sub}</p>{children}</div>
+        <div className="auth-side">
+          <Logo size={44} />
+          <div className="auth-hero">
+            <h2>Think<br />together.</h2>
+            <p>One shared space for ideas, plans, questions and leads — and you can see everyone live.</p>
+          </div>
+          <div className="auth-art" aria-hidden>
+            <span className="a-card lilac">💡 New idea</span>
+            <span className="a-card mint">✓ 4 of 5 feasible</span>
+            <span className="a-card sun">📅 Sync · Fri</span>
+            <span className="a-line" />
+          </div>
+        </div>
+        <div className="auth-form">
+          <div className="auth-brand"><Logo size={30} /></div>
+          <h1>{title}</h1><p className="muted">{sub}</p>{children}
+        </div>
       </div>
     </div>
   )
@@ -35,8 +51,8 @@ export function Login() {
   return (
     <Shell title="Welcome back" sub="Log in to your workspace.">
       <form onSubmit={submit}>
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Password" required minLength={5} />
+        <label>Email<input name="email" type="email" autoComplete="email" placeholder="you@team.com" required /></label>
+        <label>Password<input name="password" type="password" autoComplete="current-password" placeholder="••••••" required minLength={5} /></label>
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       </form>
@@ -88,9 +104,9 @@ export function Register() {
   return (
     <Shell title="Create account" sub="We'll email you a code to confirm.">
       <form onSubmit={register}>
-        <input name="name" autoComplete="name" placeholder="Name" required />
-        <input name="email" type="email" autoComplete="email" placeholder="Email" required />
-        <input name="password" type="password" autoComplete="new-password" placeholder="Password (min 5)" required minLength={5} />
+        <label>Name<input name="name" autoComplete="name" placeholder="Your name" required /></label>
+        <label>Email<input name="email" type="email" autoComplete="email" placeholder="you@team.com" required /></label>
+        <label>Password<input name="password" type="password" autoComplete="new-password" placeholder="At least 5 characters" required minLength={5} /></label>
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Sending code…' : 'Continue'}</button>
       </form>

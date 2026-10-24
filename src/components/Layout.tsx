@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, Home, Lightbulb, LogOut, MessageCircle, Package, Plus, Users } from 'lucide-react'
 import { useAuth } from '../auth'
 import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
+import Logo from './Logo'
 import Cursors from './Cursors'
 import EventsPanel from './EventsPanel'
 import ChatBox from './ChatBox'
@@ -75,7 +76,7 @@ export default function Layout() {
         <div className="frame">
           <header className="topbar" ref={barRef}>
             <div className="island" ref={islandRef} />
-            <div className="logo">glob</div>
+            <div className="logo"><Logo size={34} /></div>
             <nav>
               {NAV.map(({ to, label, icon: Icon }) => {
                 const here = roster.filter((r) => r.route !== pathname && (r.route === to || r.route.startsWith(to + '/')))
