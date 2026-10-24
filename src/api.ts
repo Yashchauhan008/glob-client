@@ -1,0 +1,54 @@
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3008'
+export const API_URL = API
+const KEY = 'glob_token'
+
+export const getToken = () => localStorage.getItem(KEY)
+export const setToken = (t: string | null) =>
+  t ? localStorage.setItem(KEY, t) : localStorage.removeItem(KEY)
+
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getToken()
+  const res = await fetch(API + path, {
+    ...init,
+    headers: {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+  if (res.status === 401 && token && !path.startsWith('/auth')) {
+    setToken(null)
+    window.location.href = '/login'
+  }
+  if (res.status === 204) return undefined as T
+  const ct = res.headers.get('content-type') || ''
+  const data = ct.includes('json') ? await res.json() : await res.text()
+  if (!res.ok) throw new ApiError((data as any)?.message || 'Request failed', res.status)
+  return data as T
+}
+
+export const api = {
+  get: <T,>(p: string) => request<T>(p),
+  post: <T,>(p: string, body?: unknown) => request<T>(p, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  put: <T,>(p: string, body: unknown) => request<T>(p, { method: 'PUT', body: JSON.stringify(body) }),
+  patch: <T,>(p: string, body: unknown) => request<T>(p, { method: 'PATCH', body: JSON.stringify(body) }),
+  del: (p: string) => request<void>(p, { method: 'DELETE' }),
+  text: (p: string) => request<string>(p),
+}
+
+export async function downloadCsv(entity: string) {
+  const csv = await api.text(`/csv/export/${entity}`)
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${entity}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}

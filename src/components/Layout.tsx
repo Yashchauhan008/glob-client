@@ -1,0 +1,120 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, Home, Lightbulb, LogOut, MessageCircle, Package, Plus, Users } from 'lucide-react'
+import { useAuth } from '../auth'
+import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
+import Cursors from './Cursors'
+import EventsPanel from './EventsPanel'
+import ChatBox from './ChatBox'
+import { QuickProvider, useQuick } from './quick'
+
+const NAV = [
+  { to: '/home', label: 'Home', icon: Home },
+  { to: '/ideas', label: 'Ideas', icon: Lightbulb },
+  { to: '/qa', label: 'Q&A', icon: HelpCircle },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { to: '/leads', label: 'CRM', icon: Users },
+  { to: '/products', label: 'Products', icon: Package },
+]
+
+function Dock({ toggleChat }: { toggleChat: () => void }) {
+  const quick = useQuick()
+  const items = [
+    { icon: Lightbulb, tip: 'New idea', cls: 'lilac', run: () => quick('idea') },
+    { icon: HelpCircle, tip: 'Ask a question', cls: 'sky', run: () => quick('question') },
+    { icon: CheckSquare, tip: 'New task', cls: 'pink', run: () => quick('todo') },
+    { icon: CalendarDays, tip: 'New event', cls: 'sun', run: () => quick('event') },
+    { icon: MessageCircle, tip: 'Team chat', cls: 'mint', run: toggleChat },
+    { icon: Plus, tip: 'New lead', cls: 'dark', run: () => quick('lead') },
+  ]
+  return (
+    <div className="dock">
+      {items.map(({ icon: Icon, tip, cls, run }) => <button key={tip} className={cls} data-tip={tip} aria-label={tip} onClick={run}><Icon size={20} strokeWidth={2} /></button>)}
+    </div>
+  )
+}
+
+export default function Layout() {
+  const { user, signOut } = useAuth()
+  const { roster } = usePresence()
+  const { pathname } = useLocation()
+  const [chatOpen, setChatOpen] = useState(false)
+  const [menu, setMenu] = useState(false)
+  const barRef = useRef<HTMLElement>(null)
+  const islandRef = useRef<HTMLDivElement>(null)
+
+  // centre the island under the active nav item; CSS glides it there (no jump on first paint)
+  const placed = useRef(false)
+  const place = () => {
+    const bar = barRef.current, island = islandRef.current
+    const active = bar?.querySelector<HTMLElement>('.nav-item.active')
+    if (!bar || !island) return
+    if (!active) { island.classList.remove('ready'); placed.current = false; return }
+    const b = bar.getBoundingClientRect(), r = active.getBoundingClientRect()
+    const left = `${r.left - b.left + r.width / 2}px`
+    if (!placed.current) {
+      island.style.transition = 'none'
+      island.style.left = left
+      void island.offsetWidth
+      island.style.transition = ''
+      placed.current = true
+    } else island.style.left = left
+    island.classList.add('ready')
+  }
+  useLayoutEffect(() => { place() }, [pathname])
+  useEffect(() => {
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [])
+  const online = [...new Map(roster.map((r) => [r.user_id, r])).values()]
+
+  return (
+    <QuickProvider>
+      <div className="stage">
+        <div className="frame">
+          <header className="topbar" ref={barRef}>
+            <div className="island" ref={islandRef} />
+            <div className="logo">glob</div>
+            <nav>
+              {NAV.map(({ to, label, icon: Icon }) => {
+                const here = roster.filter((r) => r.route !== pathname && (r.route === to || r.route.startsWith(to + '/')))
+                const unique = [...new Map(here.map((r) => [r.user_id, r])).values()]
+                return (
+                  <NavLink key={to} to={to} title={label} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+                    <Icon size={20} strokeWidth={1.8} />
+                    <span className="nav-label">{label}</span>
+                    <span className="nav-presence">
+                      {unique.map((r) => <span key={r.user_id} className="nav-dot" title={`${r.name} is here`} style={{ background: colorFor(r.user_id) }}>{initials(r.name)}</span>)}
+                    </span>
+                  </NavLink>
+                )
+              })}
+            </nav>
+            <div className="who">
+              <div className="live" title="Online now">
+                {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}
+              </div>
+              <button className="user" onClick={() => setMenu(!menu)}>
+                <i className="me-av" style={{ background: colorFor(user!.id) }}>{initials(user!.name)}</i>
+                <span><b>{user!.name}</b><small>{user!.email}</small></span><ChevronDown size={16} />
+              </button>
+              {menu && <div className="menu"><button onClick={signOut}><LogOut size={16} /> Log out</button></div>}
+            </div>
+          </header>
+          <div className="body">
+            <main className="main">
+              <div id={CONTENT_ID} className="content">
+                <Outlet />
+                <Cursors />
+              </div>
+            </main>
+            <EventsPanel />
+          </div>
+          <Dock toggleChat={() => setChatOpen((v) => !v)} />
+        </div>
+        <ChatBox open={chatOpen} setOpen={setChatOpen} />
+      </div>
+    </QuickProvider>
+  )
+}
