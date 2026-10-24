@@ -429,3 +429,14 @@ img, svg, video { max-width: 100%; }
 .act-main { flex: 1; min-width: 0; } .act-main p { font-size: 14px; line-height: 1.45; } .act-main a { font-weight: 700; word-break: break-word; }
 .act-detail { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; background: var(--side); padding: 8px 12px; border-radius: 12px; }
 .act-row time { color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 3px; }
+
+/* ---- chat launcher: Instagram-style floating pill, bottom-right corner ---- */
+.chat-fab { right: 24px; bottom: 24px; background: #fff; color: var(--ink); gap: 12px; padding: 8px 8px 8px 12px; box-shadow: 0 8px 28px rgba(0,0,0,.22), 0 0 0 1px rgba(0,0,0,.05); transition: transform .15s, box-shadow .15s; }
+.chat-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.05); }
+.fab-icon { position: relative; display: grid; place-items: center; width: 34px; height: 34px; }
+.fab-label { font-weight: 700; font-size: 15px; }
+.chat-fab .avatars { padding-left: 6px; } .chat-fab .avatars i { border-color: #fff; width: 30px; height: 30px; font-size: 11px; }
+.chat-fab .avatars:empty { display: none; } .chat-fab { padding-right: 14px; } .chat-fab:has(.avatars:not(:empty)) { padding-right: 8px; }
+.chat-fab .badge { position: absolute; top: -4px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; background: #ff3040; color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800; border: 2px solid #fff; }
+.chat { right: 24px; bottom: 24px; }
+@media (max-width: 760px) { .chat { right: 8px; bottom: 8px; } .chat-fab { right: 12px; bottom: 84px; } .fab-label { display: none; } .chat-fab { padding: 8px; } .chat-fab .avatars { display: none; } }

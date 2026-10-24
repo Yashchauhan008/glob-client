@@ -41,10 +41,10 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
 
   if (!open)
     return (
-      <button className="chat-fab" onClick={() => setOpen(true)}>
-        <MessageCircle size={18} /> Team chat
-        <span className="avatars">{[...online.slice(0, 3)].map((o) => <i key={o.user_id} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}</span>
-        {unread > 0 && <b className="badge">{unread}</b>}
+      <button className="chat-fab" onClick={() => setOpen(true)} aria-label="Team chat">
+        <span className="fab-icon"><Send size={20} strokeWidth={2} />{unread > 0 && <b className="badge">{unread > 9 ? '9+' : unread}</b>}</span>
+        <span className="fab-label">Messages</span>
+        <span className="avatars">{online.slice(0, 3).map((o) => <i key={o.user_id} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}</span>
       </button>
     )
   return (

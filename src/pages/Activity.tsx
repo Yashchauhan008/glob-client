@@ -9,7 +9,7 @@ type Item = { id: string; verb: string; entity_type: string; entity_id: string |
 
 const TYPES: { key: string; label: string }[] = [
   { key: 'all', label: 'All' }, { key: 'ideas', label: 'Ideas' }, { key: 'questions', label: 'Q&A' },
-  { key: 'todos', label: 'Tasks' }, { key: 'events', label: 'Calendar' }, { key: 'leads', label: 'CRM' }, { key: 'products', label: 'Products' },
+  { key: 'todos', label: 'Tasks' }, { key: 'events', label: 'Calendar' }, { key: 'leads', label: 'CRM' }, { key: 'products', label: 'Products' }, { key: 'auth', label: 'Logins' },
 ]
 const PATH: Record<string, string> = { questions: '/qa', todos: '/tasks', events: '/calendar', products: '/products' }
 const target = (i: Item) => i.entity_type === 'ideas' ? (i.entity_id && !i.verb.startsWith('deleted') ? `/ideas/${i.entity_id}` : '/ideas')
