@@ -9,7 +9,8 @@ import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
 import Attachments from '../components/Attachments'
-import Conversation from '../components/Conversation'
+import Discussion from '../components/Discussion'
+import { useMedia } from '../media'
 
 type Detail = Omit<Idea, 'votes'> & { votes: { user_id: string; feasibility: number; name: string }[] }
 type Q = { id: string; title: string; answers_count: number; accepted_answer_id: string | null; idea_id: string | null }
@@ -24,6 +25,7 @@ export default function IdeaDetail() {
   const { user } = useAuth()
   const quick = useQuick()
   const [edit, setEdit] = useState(false)
+  const wide = useMedia('(min-width: 1101px)') // on wide screens the discussion lives in the side panel
   const key = ['idea', id]
   const { data } = useQuery({ queryKey: key, queryFn: () => api.get<Detail>(`/ideas/${id}`) })
   const questions = useQuery({ queryKey: ['questions'], queryFn: () => api.get<{ items: Q[] }>('/questions') })
@@ -112,7 +114,7 @@ export default function IdeaDetail() {
         <Attachments type="idea" id={data.id} />
       </section>
 
-      <Conversation ideaId={data.id} />
+      {!wide && <section className="panel disc-inline"><Discussion ideaId={data.id} /></section>}
 
       {edit && (
         <Modal title="Edit idea" onClose={() => setEdit(false)}>

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
@@ -7,6 +7,8 @@ import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
 import EventsPanel from './EventsPanel'
+import Discussion from './Discussion'
+import { useMedia } from '../media'
 import ChatBox from './ChatBox'
 import { QuickProvider, useQuick } from './quick'
 
@@ -42,7 +44,9 @@ export default function Layout() {
   const { user, signOut } = useAuth()
   const { roster } = usePresence()
   const { theme, toggle } = useTheme()
+  const wide = useMedia('(min-width: 1101px)')
   const { pathname } = useLocation()
+  const ideaMatch = matchPath('/ideas/:id', pathname)
   const [chatOpen, setChatOpen] = useState(false)
   const [menu, setMenu] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
@@ -121,7 +125,9 @@ export default function Layout() {
                 <Cursors />
               </div>
             </main>
-            <EventsPanel />
+            {ideaMatch && wide ? (
+              <aside className="events-panel idea-side"><h2>Discussion <span>💬</span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
+            ) : <EventsPanel />}
           </div>
           <Dock toggleChat={() => setChatOpen((v) => !v)} />
         </div>

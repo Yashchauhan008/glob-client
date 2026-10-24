@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Send } from 'lucide-react'
+import { ChevronDown, Maximize2, Minimize2, Send } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { colorFor, initials, usePresence } from '../presence'
@@ -13,6 +13,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
   const { user } = useAuth()
   const { socket, roster } = usePresence()
   const history = useQuery({ queryKey: ['chat'], queryFn: () => api.get<{ items: Msg[] }>('/chat'), staleTime: Infinity })
+  const [big, setBig] = useState(false)
   const [live, setLive] = useState<Msg[]>([])
   const [unread, setUnread] = useState(0)
   const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({})
@@ -72,10 +73,13 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
       </button>
     )
   return (
-    <div className="chat">
+    <div className={'chat' + (big ? ' big' : '')}>
       <div className="chat-head">
         <div><b>Team chat</b><small>{online.length + 1} online · {[user?.name, ...online.map((o) => o.name)].join(', ')}</small></div>
-        <button onClick={() => setOpen(false)} aria-label="Minimise"><ChevronDown size={18} /></button>
+        <div className="chat-btns">
+          <button onClick={() => setBig((v) => !v)} aria-label={big ? 'Restore size' : 'Maximise'} title={big ? 'Restore size' : 'Maximise'}>{big ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
+          <button onClick={() => { setOpen(false); setBig(false) }} aria-label="Minimise" title="Minimise"><ChevronDown size={18} /></button>
+        </div>
       </div>
       <div className="chat-msgs">
         {!all.length && <p className="muted">Say hi 👋 — everyone online sees this.</p>}
