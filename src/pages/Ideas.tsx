@@ -50,7 +50,8 @@ export default function Ideas() {
                 <div className="idea-foot">
                   <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
                   <span className="chip">💭 {i.thoughts}</span>
-                  <span className="chip">❓ {i.asks + i.problems}</span>
+                  {!!i.problems && <span className="chip">⚠️ {i.problems}</span>}
+                  {!!i.conclusions && <span className="chip">✅ {i.conclusions}</span>}
                   {!!i.attachments && <span className="chip">📎 {i.attachments}</span>}
                   <Avatars names={i.contributors} />
                 </div>

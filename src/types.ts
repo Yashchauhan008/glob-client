@@ -6,12 +6,9 @@ export const PRODUCT_STATUSES = ['up', 'down', 'building'] as const
 
 export type Idea = {
   id: string; title: string; description: string; status: (typeof IDEA_STATUSES)[number]
-  owner_name: string; problems: number; asks: number; solutions: number; created_at: string
+  owner_name: string; problems: number; solutions: number; conclusions: number; messages: number; created_at: string
   feasibility: number | null; votes: number; my_vote: number | null; thoughts: number; contributors: string[]
   attachments?: number; cover?: string | null
-}
-export type IdeaNote = {
-  id: string; kind: 'problem' | 'ask' | 'solution'; body: string; parent_id: string | null; owner_name: string
 }
 export type Product = {
   id: string; name: string; url: string; status: (typeof PRODUCT_STATUSES)[number]

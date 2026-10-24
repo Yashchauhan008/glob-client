@@ -70,9 +70,9 @@ export default function Home() {
 
       <div className="cols-2">
         <section className="panel">
-          <h3>Unanswered problems &amp; asks</h3>
-          {data.open_notes.map((n) => <Link key={n.id} to={`/ideas/${n.idea_id}`} className="row-link"><Pill color={n.kind === 'problem' ? '#f9d2e4' : '#d3e9f8'}>{n.kind}</Pill><span>{n.body}</span><small>{n.idea_title}</small></Link>)}
-          {!data.open_notes.length && <p className="muted">Nothing unanswered.</p>}
+          <h3>Problems without a solution yet</h3>
+          {data.open_notes.map((n) => <Link key={n.id} to={`/ideas/${n.idea_id}`} className="row-link"><Pill color="#f9d2e4">problem</Pill><span>{n.body}</span><small>{n.idea_title}</small></Link>)}
+          {!data.open_notes.length && <p className="muted">Every problem has a solution.</p>}
         </section>
         <section className="panel">
           <h3>Due &amp; follow-ups</h3>

@@ -104,6 +104,9 @@ export default function Layout() {
               <div className="live" title="Online now">
                 {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}
               </div>
+              <button className="theme-btn" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
               <button className="user" onClick={() => setMenu(!menu)}>
                 <i className="me-av" style={{ background: colorFor(user!.id) }}>{initials(user!.name)}</i>
                 <span><b>{user!.name}</b><small>{user!.email}</small></span><ChevronDown size={16} />

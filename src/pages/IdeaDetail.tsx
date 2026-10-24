@@ -4,61 +4,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, CheckSquare, HelpCircle, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea, type IdeaNote, type Todo } from '../types'
+import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea, type Todo } from '../types'
 import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
 import Attachments from '../components/Attachments'
+import Conversation from '../components/Conversation'
 
-type Detail = Omit<Idea, 'votes'> & { notes: IdeaNote[]; votes: { user_id: string; feasibility: number; name: string }[] }
+type Detail = Omit<Idea, 'votes'> & { votes: { user_id: string; feasibility: number; name: string }[] }
 type Q = { id: string; title: string; answers_count: number; accepted_answer_id: string | null; idea_id: string | null }
 type Ev = { id: string; title: string; kind: string; starts_at: string; idea_id: string | null }
 
-const COLS = [
-  { kind: 'problem', label: 'Problems', hint: 'What’s broken or risky?', color: '#f9d2e4' },
-  { kind: 'ask', label: 'Asks', hint: 'What do we need to find out?', color: '#d3e9f8' },
-  { kind: 'solution', label: 'Solutions', hint: 'How could we solve it?', color: '#d3f2cc' },
-] as const
 const SCALE = ['Not possible', 'Very hard', 'Doable', 'Easy', 'Trivial']
-
-function NoteColumn({ col, notes, all, onAdd, onDelete }: {
-  col: (typeof COLS)[number]; notes: IdeaNote[]; all: IdeaNote[]
-  onAdd: (b: object) => void; onDelete: (id: string) => void
-}) {
-  const [parent, setParent] = useState('')
-  const parents = all.filter((n) => n.kind !== 'solution')
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const f = e.currentTarget
-    onAdd({ kind: col.kind, body: String(new FormData(f).get('body')), parent_id: col.kind === 'solution' && parent ? parent : null })
-    f.reset(); setParent('')
-  }
-  return (
-    <section className="col" style={{ background: col.color }}>
-      <header><h3>{col.label}</h3><span className="chip">{notes.length}</span></header>
-      <div className="col-notes">
-        {notes.map((n) => (
-          <div key={n.id} className="note">
-            <p>{n.body}</p>
-            {n.parent_id && <small>↳ answers “{all.find((p) => p.id === n.parent_id)?.body.slice(0, 36)}…”</small>}
-            <small className="note-foot"><Avatars names={[n.owner_name]} /> {n.owner_name}
-              <button onClick={() => onDelete(n.id)} aria-label="Remove"><Trash2 size={13} /></button></small>
-          </div>
-        ))}
-        {!notes.length && <p className="col-empty">{col.hint}</p>}
-      </div>
-      <form onSubmit={submit}>
-        {col.kind === 'solution' && !!parents.length && (
-          <select value={parent} onChange={(e) => setParent(e.target.value)}>
-            <option value="">Answers… (optional)</option>
-            {parents.map((p) => <option key={p.id} value={p.id}>{p.kind}: {p.body.slice(0, 34)}</option>)}
-          </select>
-        )}
-        <div className="col-add"><input name="body" placeholder={`Add ${col.kind}…`} required /><button className="btn">Add</button></div>
-      </form>
-    </section>
-  )
-}
 
 export default function IdeaDetail() {
   const { id } = useParams()
@@ -78,8 +35,6 @@ export default function IdeaDetail() {
   const refresh = () => { ['idea', 'ideas', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] })) }
   const patch = useMutation({ mutationFn: (b: object) => api.patch(`/ideas/${id}`, b), onSuccess: () => { refresh(); setEdit(false) } })
   const vote = useMutation({ mutationFn: (feasibility: number) => api.put(`/ideas/${id}/vote`, { feasibility }), onSuccess: refresh })
-  const addNote = useMutation({ mutationFn: (b: object) => api.post(`/ideas/${id}/notes`, b), onSuccess: refresh })
-  const delNote = useMutation({ mutationFn: (n: string) => api.del(`/ideas/${id}/notes/${n}`), onSuccess: refresh })
   const del = useMutation({ mutationFn: () => api.del(`/ideas/${id}`), onSuccess: () => { refresh(); nav('/ideas') } })
   const toggle = useMutation({ mutationFn: (t: Todo) => api.patch(`/todos/${t.id}`, { done: !t.done }), onSuccess: () => qc.invalidateQueries({ queryKey: ['todos'] }) })
 
@@ -157,12 +112,7 @@ export default function IdeaDetail() {
         <Attachments type="idea" id={data.id} />
       </section>
 
-      <div className="cols-3 notes-board">
-        {COLS.map((c) => (
-          <NoteColumn key={c.kind} col={c} all={data.notes} notes={data.notes.filter((n) => n.kind === c.kind)}
-            onAdd={(b) => addNote.mutate(b)} onDelete={(n) => delNote.mutate(n)} />
-        ))}
-      </div>
+      <Conversation ideaId={data.id} />
 
       {edit && (
         <Modal title="Edit idea" onClose={() => setEdit(false)}>
