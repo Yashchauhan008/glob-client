@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import type { User } from '../types'
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+const BUILD_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 const SRC = 'https://accounts.google.com/gsi/client'
 
 type Google = { accounts: { id: {
@@ -28,14 +28,20 @@ export default function GoogleButton({ onError }: { onError: (m: string) => void
   const { signIn } = useAuth()
   const nav = useNavigate()
   const [ready, setReady] = useState(false)
+  const [clientId, setClientId] = useState<string | null>(BUILD_ID || null)
+
+  // the API is the source of truth, so changing the server env is enough
+  useEffect(() => {
+    api.get<{ google_client_id: string | null }>('/auth/config').then((c) => { if (c.google_client_id) setClientId(c.google_client_id) }).catch(() => {})
+  }, [])
 
   useEffect(() => {
-    if (!CLIENT_ID) return
+    if (!clientId) return
     let off = false
     loadGoogle().then((g) => {
       if (off || !box.current) return
       g.accounts.id.initialize({
-        client_id: CLIENT_ID,
+        client_id: clientId,
         callback: async ({ credential }) => {
           try {
             const r = await api.post<{ token: string; user: User }>('/auth/google', { id_token: credential })
@@ -48,9 +54,9 @@ export default function GoogleButton({ onError }: { onError: (m: string) => void
       setReady(true)
     }).catch(() => onError('Could not load Google sign-in'))
     return () => { off = true }
-  }, [])
+  }, [clientId])
 
-  if (!CLIENT_ID) return null
+  if (!clientId) return null
   return (
     <>
       <div className="or"><span>or</span></div>
