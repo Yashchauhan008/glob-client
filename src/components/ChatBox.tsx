@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, MessageCircle, Send } from 'lucide-react'
+import { ChevronDown, Send } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { colorFor, initials, usePresence } from '../presence'
