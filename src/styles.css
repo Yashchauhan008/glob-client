@@ -372,3 +372,18 @@ img, svg, video { max-width: 100%; }
   .logo-word { font-size: 24px; }
 }
 @media (max-width: 560px) { .topbar .logo-word { display: none; } }
+
+/* ---- mobile nav: collapses into a menu sheet ---- */
+.mobile-title, .nav-toggle { display: none; }
+@media (max-width: 760px) {
+  .logo { margin-right: 0; }
+  .mobile-title { display: block; flex: 1; font-weight: 800; font-size: 18px; letter-spacing: -.5px; padding-left: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-toggle { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 0; background: #1c1c1f; color: #fff; flex: none; }
+  nav { display: none; }
+  nav.open { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: fixed; top: 70px; left: 10px; right: 10px; z-index: 60; background: #161618; border-radius: 28px; padding: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.5); overflow: visible; animation: fadein .15s; }
+  nav.open .nav-item { height: 52px; padding: 0 16px; border-radius: 18px; background: #222225; color: #fff; gap: 10px; }
+  nav.open .nav-item.active { background: var(--paper); color: var(--ink); }
+  nav.open .nav-label, nav.open .nav-item.active .nav-label { display: inline !important; padding: 0; font-size: 15px; }
+  nav.open .nav-presence { top: 6px; right: 8px; }
+  .topbar .logo-word { display: none; }
+}

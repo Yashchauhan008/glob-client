@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, Home, Lightbulb, LogOut, MessageCircle, Package, Plus, Users } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, Home, Lightbulb, LogOut, Menu, MessageCircle, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
 import Logo from './Logo'
@@ -42,6 +42,9 @@ export default function Layout() {
   const { pathname } = useLocation()
   const [chatOpen, setChatOpen] = useState(false)
   const [menu, setMenu] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
+  useEffect(() => { setNavOpen(false); setMenu(false) }, [pathname])
+  const current = NAV.find((n) => pathname === n.to || pathname.startsWith(n.to + '/'))
   const barRef = useRef<HTMLElement>(null)
   const islandRef = useRef<HTMLDivElement>(null)
 
@@ -77,7 +80,8 @@ export default function Layout() {
           <header className="topbar" ref={barRef}>
             <div className="island" ref={islandRef} />
             <div className="logo"><Logo size={34} /></div>
-            <nav>
+            <span className="mobile-title">{current?.label}</span>
+            <nav className={navOpen ? 'open' : ''}>
               {NAV.map(({ to, label, icon: Icon }) => {
                 const here = roster.filter((r) => r.route !== pathname && (r.route === to || r.route.startsWith(to + '/')))
                 const unique = [...new Map(here.map((r) => [r.user_id, r])).values()]
@@ -92,6 +96,7 @@ export default function Layout() {
                 )
               })}
             </nav>
+            <button className="nav-toggle" aria-label="Menu" onClick={() => setNavOpen((v) => !v)}>{navOpen ? <X size={22} /> : <Menu size={22} />}</button>
             <div className="who">
               <div className="live" title="Online now">
                 {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}
