@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { Eye, EyeOff } from 'lucide-react'
+import AuthArt from '../components/AuthArt'
 import Logo from '../components/Logo'
 import type { User } from '../types'
 
@@ -11,25 +13,27 @@ function Shell({ title, sub, children }: { title: string; sub: string; children:
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-side">
-          <Logo size={44} />
-          <div className="auth-hero">
-            <h2>Think<br />together.</h2>
-            <p>One shared space for ideas, plans, questions and leads — and you can see everyone live.</p>
-          </div>
-          <div className="auth-art" aria-hidden>
-            <span className="a-card lilac">💡 New idea</span>
-            <span className="a-card mint">✓ 4 of 5 feasible</span>
-            <span className="a-card sun">📅 Sync · Fri</span>
-            <span className="a-line" />
-          </div>
-        </div>
+        <div className="auth-side"><AuthArt /></div>
         <div className="auth-form">
           <div className="auth-brand"><Logo size={30} /></div>
-          <h1>{title}</h1><p className="muted">{sub}</p>{children}
+          <h1>{title}</h1><p className="sub">{sub}</p>{children}
         </div>
       </div>
     </div>
+  )
+}
+
+function Field({ label, type = 'text', ...rest }: { label: string; type?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [show, setShow] = useState(false)
+  const pw = type === 'password'
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <div className="field-box">
+        <input {...rest} type={pw && show ? 'text' : type} />
+        {pw && <button type="button" tabIndex={-1} aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow(!show)}>{show ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
+      </div>
+    </label>
   )
 }
 
@@ -49,14 +53,14 @@ export function Login() {
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
   return (
-    <Shell title="Welcome back" sub="Log in to your workspace.">
+    <Shell title="Welcome Back!" sub="Enter your details below">
       <form onSubmit={submit}>
-        <label>Email<input name="email" type="email" autoComplete="email" placeholder="you@team.com" required /></label>
-        <label>Password<input name="password" type="password" autoComplete="current-password" placeholder="••••••" required minLength={5} /></label>
+        <Field label="Email" name="email" type="email" autoComplete="email" placeholder="you@team.com" required />
+        <Field label="Password" name="password" type="password" autoComplete="current-password" placeholder="••••••" required minLength={5} />
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       </form>
-      <p className="muted">New here? <Link to="/register">Create an account</Link></p>
+      <p className="auth-foot">Don't have an account? <Link to="/register">Sign up</Link></p>
     </Shell>
   )
 }
@@ -92,25 +96,25 @@ export function Register() {
 
   if (regToken)
     return (
-      <Shell title="Verify your email" sub="Enter the 6-digit code we emailed you.">
+      <Shell title="Check your email" sub="Enter the 6-digit code we sent you">
         <form onSubmit={verify} autoComplete="off">
           <input name="otp" autoComplete="one-time-code" inputMode="numeric" autoCorrect="off" spellCheck={false} placeholder="123456" required maxLength={6} autoFocus />
           {err && <div className="form-err">{err}</div>}
           <button className="btn" disabled={busy}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
         </form>
-        <p className="muted"><a href="#" onClick={(e) => { e.preventDefault(); sessionStorage.removeItem('glob_reg_token'); setRegToken(null) }}>Start over</a></p>
+        <p className="auth-foot"><a href="#" onClick={(e) => { e.preventDefault(); sessionStorage.removeItem('glob_reg_token'); setRegToken(null) }}>Start over</a></p>
       </Shell>
     )
   return (
-    <Shell title="Create account" sub="We'll email you a code to confirm.">
+    <Shell title="Join Glob" sub="We'll email you a code to confirm">
       <form onSubmit={register}>
-        <label>Name<input name="name" autoComplete="name" placeholder="Your name" required /></label>
-        <label>Email<input name="email" type="email" autoComplete="email" placeholder="you@team.com" required /></label>
-        <label>Password<input name="password" type="password" autoComplete="new-password" placeholder="At least 5 characters" required minLength={5} /></label>
+        <Field label="Name" name="name" autoComplete="name" placeholder="Your name" required />
+        <Field label="Email" name="email" type="email" autoComplete="email" placeholder="you@team.com" required />
+        <Field label="Password" name="password" type="password" autoComplete="new-password" placeholder="At least 5 characters" required minLength={5} />
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Sending code…' : 'Continue'}</button>
       </form>
-      <p className="muted">Have an account? <Link to="/login">Log in</Link></p>
+      <p className="auth-foot">Already have an account? <Link to="/login">Log in</Link></p>
     </Shell>
   )
 }
