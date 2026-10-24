@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthArt from '../components/AuthArt'
+import GoogleButton from '../components/GoogleButton'
 import Logo from '../components/Logo'
 import type { User } from '../types'
 
@@ -60,6 +61,7 @@ export function Login() {
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       </form>
+      <GoogleButton onError={setErr} />
       <p className="auth-foot">Don't have an account? <Link to="/register">Sign up</Link></p>
     </Shell>
   )
@@ -114,6 +116,7 @@ export function Register() {
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Sending code…' : 'Continue'}</button>
       </form>
+      <GoogleButton onError={setErr} />
       <p className="auth-foot">Already have an account? <Link to="/login">Log in</Link></p>
     </Shell>
   )
