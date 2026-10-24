@@ -52,3 +52,13 @@ export async function downloadCsv(entity: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export async function uploadImage(file: File): Promise<{ file_id: string; url: string }> {
+  const token = getToken()
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch(API + '/attachments/upload', { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ApiError(data?.message || 'Upload failed', res.status)
+  return data
+}

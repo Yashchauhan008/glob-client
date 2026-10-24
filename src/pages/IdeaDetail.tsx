@@ -8,6 +8,7 @@ import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea, type IdeaNote, type T
 import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
+import Attachments from '../components/Attachments'
 
 type Detail = Omit<Idea, 'votes'> & { notes: IdeaNote[]; votes: { user_id: string; feasibility: number; name: string }[] }
 type Q = { id: string; title: string; answers_count: number; accepted_answer_id: string | null; idea_id: string | null }
@@ -150,6 +151,11 @@ export default function IdeaDetail() {
           {!relQ.length && !relT.length && !relE.length && <p className="muted">No questions, tasks or events linked yet.</p>}
         </section>
       </div>
+
+      <section className="panel attach-panel">
+        <h3>Links &amp; images</h3>
+        <Attachments type="idea" id={data.id} />
+      </section>
 
       <div className="cols-3 notes-board">
         {COLS.map((c) => (

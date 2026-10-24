@@ -43,6 +43,7 @@ export default function Ideas() {
           <div className={'ideas ' + view}>
             {shown.map((i) => (
               <Link key={i.id} to={`/ideas/${i.id}`} className={'idea status-' + i.status} style={{ '--c': IDEA_COLOR[i.status] } as React.CSSProperties}>
+                {i.cover && <img className="idea-cover" src={i.cover} alt="" loading="lazy" />}
                 <h3>{i.title}</h3>
                 <p>{i.description || 'No description yet.'}</p>
                 <Meter value={i.feasibility} votes={i.votes} />
@@ -50,6 +51,7 @@ export default function Ideas() {
                   <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
                   <span className="chip">💭 {i.thoughts}</span>
                   <span className="chip">❓ {i.asks + i.problems}</span>
+                  {!!i.attachments && <span className="chip">📎 {i.attachments}</span>}
                   <Avatars names={i.contributors} />
                 </div>
               </Link>

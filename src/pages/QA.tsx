@@ -6,6 +6,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { Empty } from '../components/ui'
 import { useQuick } from '../components/quick'
+import Attachments from '../components/Attachments'
 import Avatars from '../components/Avatars'
 
 type Q = { id: string; title: string; body: string; owner_id: string; owner_name: string; idea_id: string | null; idea_title: string | null; accepted_answer_id: string | null; answers_count: number; created_at: string }
@@ -37,6 +38,7 @@ function Question({ q }: { q: Q }) {
       {open && (
         <div className="qbody">
           {q.body && <p>{q.body}</p>}
+          <Attachments type="question" id={q.id} />
           {q.idea_id && <Link to={`/ideas/${q.idea_id}`} className="link">Open idea →</Link>}
           {detail.data?.answers.map((a) => (
             <div key={a.id} className={'answer' + (a.id === q.accepted_answer_id ? ' accepted' : '')}>

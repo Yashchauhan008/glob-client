@@ -1,3 +1,4 @@
+import Attachments from '../components/Attachments'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -46,6 +47,8 @@ export default function LeadDetail() {
               ['Follow-up', data.next_follow_up_at && fmtDateTime(data.next_follow_up_at)], ['Lost reason', data.lost_reason]] as const)
               .filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
           </dl>
+          <h3 className="att-title">Links &amp; images</h3>
+          <Attachments type="lead" id={data.id} />
         </section>
         <section className="panel">
           <h3>Activity</h3>
