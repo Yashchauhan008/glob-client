@@ -455,7 +455,7 @@ img, svg, video { max-width: 100%; }
 [data-theme='dark'] .panel, [data-theme='dark'] .empty, [data-theme='dark'] .rail, [data-theme='dark'] .day-head,
 [data-theme='dark'] .lead-card, [data-theme='dark'] .lead-pin .lbl, [data-theme='dark'] .menu, [data-theme='dark'] .chat,
 [data-theme='dark'] .msg p, [data-theme='dark'] .chat-fab, [data-theme='dark'] .avatars .more, [data-theme='dark'] .map-card { background: var(--surface); color: var(--text); }
-[data-theme='dark'] input, [data-theme='dark'] select, [data-theme='dark'] textarea { background: var(--surface); color: var(--text); border-color: var(--line); }
+[data-theme='dark'] input, [data-theme='dark'] select, [data-theme='dark'] textarea { background-color: var(--surface); color: var(--text); border-color: var(--line); }
 [data-theme='dark'] input:focus, [data-theme='dark'] select:focus, [data-theme='dark'] textarea:focus { border-color: #8a8a96; }
 [data-theme='dark'] input::placeholder, [data-theme='dark'] textarea::placeholder { color: #6f6f79; }
 [data-theme='dark'] select, [data-theme='dark'] .card .row select, [data-theme='dark'] .col select, [data-theme='dark'] .hero-meta select {
@@ -517,3 +517,12 @@ img, svg, video { max-width: 100%; }
 [data-theme='dark'] .act-detail { background: var(--side); }
 [data-theme='dark'] .crumb a, [data-theme='dark'] .link { color: var(--text); }
 [data-theme='dark'] .idea.status-building { box-shadow: 0 18px 36px rgba(150,120,230,.25); }
+
+/* controls that sit on pastel surfaces stay light with dark ink */
+[data-theme='dark'] .hero-meta select, [data-theme='dark'] .card .row select, [data-theme='dark'] .col select, [data-theme='dark'] .col input,
+[data-theme='dark'] .col textarea { background-color: rgba(255,255,255,.85); color: var(--ink); border-color: transparent; }
+[data-theme='dark'] .col select, [data-theme='dark'] .hero-meta select, [data-theme='dark'] .card .row select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230c0c0d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+[data-theme='dark'] .linked-actions button, [data-theme='dark'] .hero-actions .btn { color: var(--ink); }
+[data-theme='dark'] .hero-actions .btn { background: var(--ink); color: #fff; }
