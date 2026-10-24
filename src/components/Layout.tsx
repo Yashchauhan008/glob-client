@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Package, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
+import { useTheme } from '../theme'
 import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
@@ -40,6 +41,7 @@ function Dock({ toggleChat }: { toggleChat: () => void }) {
 export default function Layout() {
   const { user, signOut } = useAuth()
   const { roster } = usePresence()
+  const { theme, toggle } = useTheme()
   const { pathname } = useLocation()
   const [chatOpen, setChatOpen] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -106,7 +108,7 @@ export default function Layout() {
                 <i className="me-av" style={{ background: colorFor(user!.id) }}>{initials(user!.name)}</i>
                 <span><b>{user!.name}</b><small>{user!.email}</small></span><ChevronDown size={16} />
               </button>
-              {menu && <div className="menu"><button onClick={signOut}><LogOut size={16} /> Log out</button></div>}
+              {menu && <div className="menu"><button onClick={toggle}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button><button onClick={signOut}><LogOut size={16} /> Log out</button></div>}
             </div>
           </header>
           <div className="body">

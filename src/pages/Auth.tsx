@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Moon, Sun } from 'lucide-react'
+import { useTheme } from '../theme'
 import AuthArt from '../components/AuthArt'
 import GoogleButton from '../components/GoogleButton'
 import Logo from '../components/Logo'
@@ -10,9 +11,15 @@ import type { User } from '../types'
 
 type AuthRes = { token: string; user: User }
 
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  return <button type="button" className="theme-toggle" onClick={toggle} aria-label="Toggle dark mode" title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
+}
+
 function Shell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <div className="auth-page">
+      <ThemeToggle />
       <div className="auth-card">
         <div className="auth-side"><AuthArt /></div>
         <div className="auth-form">

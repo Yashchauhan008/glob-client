@@ -54,6 +54,17 @@ function makeOverlayClass() {
   }
 }
 
+const DARK_MAP = [
+  { elementType: 'geometry', stylers: [{ color: '#1d1d21' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#9a9aa3' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1d21' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c2c32' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a3a42' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1a2a' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3a42' }] },
+]
+
 export function LeadMap({ leads, height = 420 }: { leads: Lead[]; height?: number }) {
   const { ready, error } = useMaps()
   const ref = useRef<HTMLDivElement>(null)
@@ -68,6 +79,14 @@ export function LeadMap({ leads, height = 420 }: { leads: Lead[]; height?: numbe
       center: { lat: home.lat, lng: home.lng }, zoom: home.zoom, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
     })
     infoRef.current = new g.maps.InfoWindow()
+  }, [ready])
+
+  // follow the app theme
+  useEffect(() => {
+    const apply = () => mapRef.current?.setOptions({ styles: document.documentElement.dataset.theme === 'dark' ? DARK_MAP : [] })
+    apply()
+    window.addEventListener('glob-theme', apply)
+    return () => window.removeEventListener('glob-theme', apply)
   }, [ready])
 
   useEffect(() => {
