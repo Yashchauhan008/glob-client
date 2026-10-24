@@ -126,7 +126,7 @@ export default function Layout() {
               </div>
             </main>
             {ideaMatch && wide ? (
-              <aside className="events-panel idea-side"><h2>Discussion <span>💬</span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
+              <aside className="events-panel idea-side"><h2>Chat <span>💬</span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
             ) : <EventsPanel />}
           </div>
           <Dock toggleChat={() => setChatOpen((v) => !v)} />

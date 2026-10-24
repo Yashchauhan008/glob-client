@@ -10,6 +10,7 @@ import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
 import Attachments from '../components/Attachments'
 import Discussion from '../components/Discussion'
+import IdeaBoard from '../components/IdeaBoard'
 import { useMedia } from '../media'
 
 type Detail = Omit<Idea, 'votes'> & { votes: { user_id: string; feasibility: number; name: string }[] }
@@ -114,7 +115,9 @@ export default function IdeaDetail() {
         <Attachments type="idea" id={data.id} />
       </section>
 
-      {!wide && <section className="panel disc-inline"><Discussion ideaId={data.id} /></section>}
+      <IdeaBoard ideaId={data.id} />
+
+      {!wide && <section className="panel disc-inline"><h3>Chat</h3><Discussion ideaId={data.id} /></section>}
 
       {edit && (
         <Modal title="Edit idea" onClose={() => setEdit(false)}>
