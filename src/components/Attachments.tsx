@@ -1,11 +1,11 @@
 import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, ImagePlus, Link2, X } from 'lucide-react'
-import { api, uploadImage } from '../api'
+import { api, uploadImage, uploadThumbnail } from '../api'
 import { Modal } from './ui'
 
 export type AttachEntity = 'idea' | 'note' | 'question' | 'todo' | 'event' | 'lead'
-export type Attachment = { id: string; kind: 'link' | 'image'; url: string; title: string; owner_name?: string }
+export type Attachment = { id: string; kind: 'link' | 'image'; url: string; title: string; thumb_url?: string | null; created_at?: string; owner_name?: string }
 export type Draft = { links: string[]; files: File[] }
 export const emptyDraft: Draft = { links: [], files: [] }
 
@@ -28,16 +28,25 @@ export function describeLink(url: string) {
   } catch { return { host: url, label: 'Link', bg: '#5b5b66', path: '' } }
 }
 
-export function LinkCard({ a, onRemove }: { a: Pick<Attachment, 'url' | 'title'>; onRemove?: () => void }) {
+export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' | 'title' | 'thumb_url'>; onRemove?: () => void; onThumb?: (f: File) => void }) {
   const d = describeLink(a.url)
+  const pick = useRef<HTMLInputElement>(null)
   const href = /^https?:\/\//i.test(a.url) ? a.url : `https://${a.url}`
   return (
     <div className="att-link">
       <a href={href} target="_blank" rel="noreferrer noopener">
-        <span className="att-badge" style={{ background: d.bg }}>{d.label.slice(0, 2).toUpperCase()}</span>
+        {a.thumb_url
+          ? <span className="att-pic"><img src={a.thumb_url} alt="" loading="lazy" /></span>
+          : <span className="att-badge" style={{ background: d.bg }}>{d.label.slice(0, 2).toUpperCase()}</span>}
         <span className="att-text"><b>{a.title || d.label}</b><small>{d.host}{d.path}</small></span>
         <ExternalLink size={15} />
       </a>
+      {onThumb && !a.thumb_url && (
+        <>
+          <button type="button" className="att-addpic" onClick={() => pick.current?.click()}><ImagePlus size={13} /> Add preview</button>
+          <input ref={pick} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onThumb(f); e.target.value = '' }} />
+        </>
+      )}
       {onRemove && <button type="button" className="att-x" aria-label="Remove" onClick={onRemove}><X size={14} /></button>}
     </div>
   )
@@ -73,7 +82,12 @@ function Adder({ onLink, onFiles, busy }: { onLink: (url: string) => void; onFil
 export default function Attachments({ type, id, editable = true }: { type: AttachEntity; id: string; editable?: boolean }) {
   const qc = useQueryClient()
   const key = ['attachments', type, id]
-  const q = useQuery({ queryKey: key, queryFn: () => api.get<{ items: Attachment[] }>(`/attachments?type=${type}&id=${id}`) })
+  const q = useQuery({
+    queryKey: key,
+    queryFn: () => api.get<{ items: Attachment[] }>(`/attachments?type=${type}&id=${id}`),
+    // a fresh link's preview is fetched in the background: look again for a short while
+    refetchInterval: (query) => query.state.data?.items.some((a) => a.kind === 'link' && !a.thumb_url && a.created_at && Date.now() - new Date(a.created_at).getTime() < 25000) ? 2500 : false,
+  })
   const [open, setOpen] = useState<string | null>(null)
   const [err, setErr] = useState('')
   const refresh = () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ['ideas'] }) }
@@ -83,6 +97,7 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
     mutationFn: async (files: File[]) => { for (const f of files) { const up = await uploadImage(f); await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'image', file_id: up.file_id }) } },
     onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message),
   })
+  const setThumb = useMutation({ mutationFn: ({ id: aid, file }: { id: string; file: File }) => uploadThumbnail(aid, file), onSuccess: refresh, onError: (e: Error) => setErr(e.message) })
   const del = useMutation({ mutationFn: (aid: string) => api.del(`/attachments/${aid}`), onSuccess: refresh })
 
   const items = q.data?.items ?? []
@@ -100,7 +115,7 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
           ))}
         </div>
       )}
-      {!!links.length && <div className="att-links">{links.map((a) => <LinkCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} />)}</div>}
+      {!!links.length && <div className="att-links">{links.map((a) => <LinkCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} onThumb={editable ? (file) => setThumb.mutate({ id: a.id, file }) : undefined} />)}</div>}
       {!items.length && !q.isLoading && <p className="muted">Nothing attached yet.</p>}
       {editable && <Adder busy={addLink.isPending || addFiles.isPending} onLink={(u) => addLink.mutate(u)} onFiles={(f) => f.length && addFiles.mutate(f)} />}
       {(addFiles.isPending || addLink.isPending) && <small className="muted">Saving…</small>}
