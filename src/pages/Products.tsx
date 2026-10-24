@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowUpRight, Globe, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { PRODUCT_COLOR, PRODUCT_STATUSES, type Idea, type Product } from '../types'
 import { CsvTools, Empty, Header, Modal } from '../components/ui'
@@ -29,15 +30,20 @@ export default function Products() {
       {!items.length && <Empty>No products yet.</Empty>}
       <div className="grid">
         {items.map((p) => (
-          <div key={p.id} className="card" style={{ '--c': PRODUCT_COLOR[p.status] } as React.CSSProperties}>
-            <h3>{p.name}</h3>
-            {p.url ? <a href={p.url} target="_blank" rel="noreferrer" className="link">{p.url.replace(/^https?:\/\//, '')} ↗</a> : <p>No link</p>}
-            {p.idea_title && <div className="meta">from idea: {p.idea_title}</div>}
-            <div className="row">
-              <select value={p.status} onChange={(e) => patch.mutate({ id: p.id, status: e.target.value })}>
+          <div key={p.id} className="card pcard2" style={{ '--c': PRODUCT_COLOR[p.status] } as React.CSSProperties}>
+            <div className="pc-top">
+              <h3>{p.name}</h3>
+              <span className={'pc-status ' + p.status}><i />{p.status}</span>
+            </div>
+            {p.url
+              ? <a href={p.url} target="_blank" rel="noreferrer" className="pc-link"><Globe size={14} /><span>{p.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span><ArrowUpRight size={14} /></a>
+              : <span className="pc-nolink">No link yet</span>}
+            {p.idea_title && <div className="pc-idea">From idea · <b>{p.idea_title}</b></div>}
+            <div className="pc-actions">
+              <select value={p.status} onChange={(e) => patch.mutate({ id: p.id, status: e.target.value })} aria-label="Status">
                 {PRODUCT_STATUSES.map((s) => <option key={s}>{s}</option>)}
               </select>
-              <button className="btn ghost small" onClick={() => confirm('Delete product?') && del.mutate(p.id)}>Delete</button>
+              <button className="pc-del" aria-label="Delete product" title="Delete" onClick={() => confirm('Delete product?') && del.mutate(p.id)}><Trash2 size={15} /></button>
             </div>
           </div>
         ))}

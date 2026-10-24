@@ -763,3 +763,21 @@ img, svg, video { max-width: 100%; }
 [data-theme='dark'] .cboard { background: #3a3414; color: #fff3c4; } [data-theme='dark'] .cboard .board-count { background: rgba(255,255,255,.1); color: #d8c98a; } [data-theme='dark'] .cboard .board-count b { color: #fff3c4; }
 [data-theme='dark'] .clist li { background: rgba(255,255,255,.08); } [data-theme='dark'] .clist-body small, [data-theme='dark'] .cboard-empty { color: #d8c98a; } [data-theme='dark'] .clist li > button { background: rgba(255,255,255,.12); }
 [data-theme='dark'] .cboard .ia-open { border-color: rgba(255,255,255,.3); }
+
+/* ---------- product cards ---------- */
+.pcard2 { gap: 12px; padding: 20px; color: var(--ink); }
+.pc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .pc-top h3 { font-size: 22px; line-height: 1.15; }
+.pc-status { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.75); color: var(--ink); }
+.pc-status i { width: 8px; height: 8px; border-radius: 50%; background: #9a9aa3; } .pc-status.up i { background: #2fb344; } .pc-status.down i { background: #e03e3e; } .pc-status.building i { background: #e0a800; }
+.pc-link { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.75); color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: none; }
+.pc-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pc-link:hover { background: #fff; }
+.pc-nolink { font-size: 13px; color: #5d5d64; } .pc-idea { font-size: 12.5px; color: #55555c; } .pc-idea b { color: var(--ink); }
+.pc-actions { display: flex; gap: 8px; align-items: center; margin-top: auto; padding-top: 4px; }
+.pcard2 .pc-actions select { height: 38px; font-size: 13px; background-color: rgba(255,255,255,.85); color: var(--ink); border-color: transparent; }
+.pc-del { width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(255,255,255,.7); color: #8c2b21; flex: none; } .pc-del:hover { background: #fff; }
+
+/* anything with a pastel background keeps readable ink in dark mode too */
+[data-theme='dark'] .card .link, [data-theme='dark'] .idea .link, [data-theme='dark'] .ev .link { color: var(--ink); }
+[data-theme='dark'] .card .btn.ghost, [data-theme='dark'] .hero .btn.ghost { color: var(--ink); }
+[data-theme='dark'] .pcard2 .pc-actions select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230c0c0d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+.pcard2 .pc-actions select { line-height: normal; padding-top: 0; padding-bottom: 0; }
