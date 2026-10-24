@@ -31,10 +31,17 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!token) return
-    const socket = io(API_URL, { transports: ['websocket'], auth: { token: `Bearer ${token}` } })
+    const socket = io(API_URL, {
+      // Poll first. A websocket-only connection never completes through the proxy,
+      // so the roster stays empty and Live now only shows you.
+      transports: ['polling', 'websocket'],
+      auth: { token: `Bearer ${token}` },
+    })
     socketRef.current = socket
     setSocket(socket)
-    socket.on('connect', () => socket.emit('presence:route', { route: pathRef.current }))
+    const announce = () => socket.emit('presence:route', { route: pathRef.current })
+    socket.on('connect', announce)
+    socket.on('presence:hello', announce)
     socket.on('presence:roster', (r: RosterEntry[]) => setRoster(r))
     socket.on('presence:cursor', (c: Omit<Cursor, 'ts'>) =>
       setCursors((prev) => ({ ...prev, [c.user_id]: { ...c, ts: Date.now() } })))

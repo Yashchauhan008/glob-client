@@ -77,8 +77,8 @@ export function Register() {
   if (regToken)
     return (
       <Shell title="Verify your email" sub="Enter the 6-digit code we emailed you.">
-        <form onSubmit={verify}>
-          <input name="otp" inputMode="numeric" placeholder="123456" required maxLength={6} autoFocus />
+        <form onSubmit={verify} autoComplete="off">
+          <input name="otp" autoComplete="one-time-code" inputMode="numeric" autoCorrect="off" spellCheck={false} placeholder="123456" required maxLength={6} autoFocus />
           {err && <div className="form-err">{err}</div>}
           <button className="btn" disabled={busy}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
         </form>
@@ -88,9 +88,9 @@ export function Register() {
   return (
     <Shell title="Create account" sub="We'll email you a code to confirm.">
       <form onSubmit={register}>
-        <input name="name" placeholder="Name" required />
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Password (min 5)" required minLength={5} />
+        <input name="name" autoComplete="name" placeholder="Name" required />
+        <input name="email" type="email" autoComplete="email" placeholder="Email" required />
+        <input name="password" type="password" autoComplete="new-password" placeholder="Password (min 5)" required minLength={5} />
         {err && <div className="form-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? 'Sending code…' : 'Continue'}</button>
       </form>
