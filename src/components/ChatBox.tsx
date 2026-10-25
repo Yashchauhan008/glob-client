@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Maximize2, Minimize2, Send } from 'lucide-react'
+import { ChevronDown, Maximize2, Minimize2, Send, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { colorFor, initials, usePresence } from '../presence'
@@ -24,6 +24,9 @@ function groupMessages(list: Msg[]): Group[] {
   return out
 }
 
+type Toast = { user_id: string; name: string; body: string; count: number; at: number }
+const TOAST_MS = 5500
+
 const Dots = () => <span className="dots" aria-hidden><b /><b /><b /></span>
 
 export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
@@ -34,17 +37,42 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
   const [live, setLive] = useState<Msg[]>([])
   const [unread, setUnread] = useState(0)
   const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({})
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const lastSent = useRef(0)
   const openRef = useRef(open)
   const endRef = useRef<HTMLDivElement>(null)
   openRef.current = open
+
+  const dismiss = (uid: string) => {
+    clearTimeout(timers.current.get(uid)); timers.current.delete(uid)
+    setToasts((t) => t.filter((x) => x.user_id !== uid))
+  }
+  const arm = (uid: string) => {
+    clearTimeout(timers.current.get(uid))
+    timers.current.set(uid, setTimeout(() => dismiss(uid), TOAST_MS))
+  }
+  // a new message from someone already showing just updates their popup (like a messaging app's stacked banner)
+  const pop = (m: Msg) => {
+    setToasts((t) => {
+      const cur = t.find((x) => x.user_id === m.user_id)
+      const next: Toast = { user_id: m.user_id, name: m.name, body: m.body, count: (cur?.count ?? 0) + 1, at: Date.now() }
+      return [...t.filter((x) => x.user_id !== m.user_id), next].slice(-3)
+    })
+    arm(m.user_id)
+  }
+  useEffect(() => () => { timers.current.forEach(clearTimeout) }, [])
+  useEffect(() => { if (open) { timers.current.forEach(clearTimeout); timers.current.clear(); setToasts([]) } }, [open])
 
   useEffect(() => {
     if (!socket) return
     const on = (m: Msg) => {
       setLive((p) => [...p, m])
       setTyping((t) => { const { [m.user_id]: _gone, ...rest } = t; return rest })
-      if (!openRef.current && m.user_id !== user?.id) setUnread((n) => n + 1)
+      if (!openRef.current && m.user_id !== user?.id) {
+        setUnread((n) => n + 1)
+        pop(m)
+      }
     }
     const onTyping = (p: { user_id: string; name: string }) => setTyping((t) => ({ ...t, [p.user_id]: { name: p.name, until: Date.now() + 3000 } }))
     socket.on('chat:message', on)
@@ -84,11 +112,25 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
 
   if (!open)
     return (
+      <>
+      <div className="toasts" aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.user_id} className="toast" role="status"
+            onMouseEnter={() => clearTimeout(timers.current.get(t.user_id))} onMouseLeave={() => arm(t.user_id)}>
+            <button className="toast-main" onClick={() => { setOpen(true) }}>
+              <i style={{ background: colorFor(t.user_id) }}>{initials(t.name)}</i>
+              <span className="toast-text"><b>{t.name}{t.count > 1 && <em>{t.count} new messages</em>}</b><span>{t.body}</span></span>
+            </button>
+            <button className="toast-x" aria-label="Dismiss" onClick={() => dismiss(t.user_id)}><X size={14} /></button>
+          </div>
+        ))}
+      </div>
       <button className="chat-fab" onClick={() => setOpen(true)} aria-label="Team chat">
         <span className="fab-icon"><Send size={20} strokeWidth={2} />{unread > 0 && <b className="badge">{unread > 9 ? '9+' : unread}</b>}</span>
         <span className="fab-label">{typers.length ? <span className="fab-typing">{typers[0]}<Dots /></span> : 'Messages'}</span>
         <span className="avatars">{online.slice(0, 3).map((o) => <i key={o.user_id} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}</span>
       </button>
+      </>
     )
   return (
     <div className={'chat' + (big ? ' big' : '')}>
