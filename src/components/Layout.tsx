@@ -3,6 +3,7 @@ import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
+import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
 import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
@@ -46,6 +47,7 @@ export default function Layout() {
   const { theme, toggle } = useTheme()
   const wide = useMedia('(min-width: 1101px)')
   const { pathname } = useLocation()
+  const alerts = useAlerts(pathname)
   const ideaMatch = matchPath('/ideas/:id', pathname)
   const [chatOpen, setChatOpen] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -96,6 +98,11 @@ export default function Layout() {
                   <NavLink key={to} to={to} title={label} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
                     <Icon size={20} strokeWidth={1.8} />
                     <span className="nav-label">{label}</span>
+                    {(() => {
+                      const k = ALERT_KEY[to]
+                      const n = k && alerts ? alerts[k] : 0
+                      return n > 0 ? <span key={n} className={'nav-badge ' + k} title={ALERT_TIP[k](n)} aria-label={ALERT_TIP[k](n)}>{n > 9 ? '9+' : n}</span> : null
+                    })()}
                     <span className="nav-presence">
                       {unique.map((r) => <span key={r.user_id} className="nav-dot" title={`${r.name} is here`} style={{ background: colorFor(r.user_id) }}>{initials(r.name)}</span>)}
                     </span>

@@ -7,6 +7,23 @@ import { colorFor, initials, usePresence } from '../presence'
 
 type Msg = { id: string; user_id: string; name: string; body: string; created_at: string }
 
+const GROUP_GAP = 3 * 60 * 1000 // messages from one person this close together read as one burst
+const clock = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+type Group = { user_id: string; name: string; msgs: Msg[] }
+function groupMessages(list: Msg[]): Group[] {
+  const out: Group[] = []
+  for (const m of list) {
+    const g = out[out.length - 1]
+    const prev = g?.msgs[g.msgs.length - 1]
+    const same = g && prev && g.user_id === m.user_id
+      && new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() <= GROUP_GAP
+      && new Date(m.created_at).toDateString() === new Date(prev.created_at).toDateString()
+    if (same) g.msgs.push(m)
+    else out.push({ user_id: m.user_id, name: m.name, msgs: [m] })
+  }
+  return out
+}
+
 const Dots = () => <span className="dots" aria-hidden><b /><b /><b /></span>
 
 export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
@@ -55,6 +72,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
   const all = [...(history.data?.items ?? []), ...live].filter((m, i, a) => a.findIndex((x) => x.id === m.id) === i)
   useEffect(() => { if (open) { setUnread(0); endRef.current?.scrollIntoView() } }, [open, all.length, typers.length])
 
+  const groups = groupMessages(all)
   const online = [...new Map(roster.map((r) => [r.user_id, r])).values()]
   const send = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -83,12 +101,20 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
       </div>
       <div className="chat-msgs">
         {!all.length && <p className="muted">Say hi 👋 — everyone online sees this.</p>}
-        {all.map((m) => (
-          <div key={m.id} className={'msg' + (m.user_id === user?.id ? ' mine' : '')}>
-            {m.user_id !== user?.id && <i style={{ background: colorFor(m.user_id) }}>{initials(m.name)}</i>}
-            <div><small>{m.user_id === user?.id ? 'You' : m.name} · {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small><p>{m.body}</p></div>
-          </div>
-        ))}
+        {groups.map((g) => {
+          const mine = g.user_id === user?.id
+          return (
+            <div key={g.msgs[0].id} className={'mgroup' + (mine ? ' mine' : '')}>
+              <small className="mgroup-head">{mine ? 'You' : g.name} · {clock(g.msgs[0].created_at)}</small>
+              <div className="mgroup-body">
+                {!mine && <i style={{ background: colorFor(g.user_id) }}>{initials(g.name)}</i>}
+                <div className="mgroup-bubbles">
+                  {g.msgs.map((m) => <p key={m.id} title={clock(m.created_at)}>{m.body}</p>)}
+                </div>
+              </div>
+            </div>
+          )
+        })}
         {typers.length > 0 && (
           <div className="msg typing" aria-live="polite">
             <i style={{ background: colorFor(Object.keys(typing)[0]) }}>{initials(typers[0])}</i>
