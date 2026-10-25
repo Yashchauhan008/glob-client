@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, CheckSquare, HelpCircle, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea, type Todo } from '../types'
+import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea } from '../types'
 import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
@@ -31,7 +31,6 @@ export default function IdeaDetail() {
   const key = ['idea', id]
   const { data } = useQuery({ queryKey: key, queryFn: () => api.get<Detail>(`/ideas/${id}`) })
   const questions = useQuery({ queryKey: ['questions'], queryFn: () => api.get<{ items: Q[] }>('/questions') })
-  const todos = useQuery({ queryKey: ['todos', 'all'], queryFn: () => api.get<{ items: Todo[] }>('/todos?filter=all') })
   const events = useQuery({
     queryKey: ['events', 'all'],
     queryFn: () => api.get<{ items: Ev[] }>(`/events?from=${new Date(Date.now() - 30 * 864e5).toISOString()}&to=${new Date(Date.now() + 365 * 864e5).toISOString()}`),
@@ -40,12 +39,10 @@ export default function IdeaDetail() {
   const patch = useMutation({ mutationFn: (b: object) => api.patch(`/ideas/${id}`, b), onSuccess: () => { refresh(); setEdit(false) } })
   const vote = useMutation({ mutationFn: (feasibility: number) => api.put(`/ideas/${id}/vote`, { feasibility }), onSuccess: refresh })
   const del = useMutation({ mutationFn: () => api.del(`/ideas/${id}`), onSuccess: () => { refresh(); nav('/ideas') } })
-  const toggle = useMutation({ mutationFn: (t: Todo) => api.patch(`/todos/${t.id}`, { done: !t.done }), onSuccess: () => qc.invalidateQueries({ queryKey: ['todos'] }) })
 
   if (!data) return <p className="muted">Loading…</p>
   const mine = data.votes.find((v) => v.user_id === user?.id)?.feasibility
   const relQ = questions.data?.items.filter((q) => q.idea_id === id) ?? []
-  const relT = todos.data?.items.filter((t) => t.idea_id === id) ?? []
   const relE = events.data?.items.filter((e) => e.idea_id === id) ?? []
 
   const saveEdit = (e: FormEvent<HTMLFormElement>) => {
@@ -99,15 +96,8 @@ export default function IdeaDetail() {
             <button style={{ background: KIND_COLOR.appointment }} onClick={() => quick('event', { idea_id: id })}><CalendarDays size={15} /> Event</button>
           </div>
           {relQ.map((q) => <Link key={q.id} to="/qa" className="row-link"><HelpCircle size={15} /><span>{q.title}</span><small>{q.accepted_answer_id ? '✅ answered' : `${q.answers_count} answers`}</small></Link>)}
-          {relT.map((t) => (
-            <label key={t.id} className="row-link">
-              <input type="checkbox" className="check" checked={t.done} onChange={() => toggle.mutate(t)} />
-              <span style={{ textDecoration: t.done ? 'line-through' : 'none', opacity: t.done ? .5 : 1 }}>{t.title}</span>
-              {t.due_date && <small>{new Date(t.due_date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</small>}
-            </label>
-          ))}
           {relE.map((e) => <Link key={e.id} to="/calendar" className="row-link"><CalendarDays size={15} /><span>{e.title}</span><small>{new Date(e.starts_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></Link>)}
-          {!relQ.length && !relT.length && !relE.length && <p className="muted">No questions, tasks or events linked yet.</p>}
+          {!relQ.length && !relE.length && <p className="muted">No questions or events linked yet. Tasks live in the To-dos list below.</p>}
         </section>
       </div>
 
