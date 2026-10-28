@@ -912,7 +912,7 @@ nav.open .nav-item.active .nav-badge { border-color: var(--paper); }
 .cp-btn.ptt { user-select: none; touch-action: none; } .cp-btn.ptt svg { margin-bottom: 4px; }
 .cp-btn small { position: absolute; bottom: 3px; font-size: 7px; font-weight: 800; text-transform: uppercase; }
 .cp-vid { width: 26px; height: 26px; border-radius: 50%; background: #cfc3fb; display: grid; place-items: center; }
-.cp-err { flex-basis: 100%; font-size: 11px; color: var(--red); padding: 0 10px 4px; }
+.cp-err { text-transform: none; flex-basis: 100%; font-size: 11px; color: var(--red); padding: 0 10px 4px; }
 [data-theme='dark'] .call-dock { background: var(--surface); color: var(--text); }
 [data-theme='dark'] .cp-av i, [data-theme='dark'] .cp-av .wave { border-color: var(--surface); }
 [data-theme='dark'] .cp-chip, [data-theme='dark'] .cp-btn.off { background: #2e2e34; color: var(--text); }

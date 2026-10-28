@@ -37,6 +37,15 @@ type VoiceCtx = {
 const Ctx = createContext<VoiceCtx | null>(null)
 export const useVoice = () => useContext(Ctx)!
 
+// Say what actually went wrong instead of always blaming permissions.
+const deviceError = (e: unknown, what: 'microphone' | 'camera') => {
+  const n = e instanceof Error ? e.name : ''
+  if (n === 'NotAllowedError' || n === 'SecurityError') return `${what[0]!.toUpperCase()}${what.slice(1)} is blocked. Allow it in the browser address bar.`
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return `No ${what} found on this device.`
+  if (n === 'NotReadableError' || n === 'AbortError') return `Your ${what} is being used by another app or tab. Close it and try again.`
+  return `Could not start your ${what}.`
+}
+
 const typing = (t: EventTarget | null) => {
   const el = t as HTMLElement | null
   return !!el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
@@ -70,8 +79,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     micQueue.current = micQueue.current.then(async () => {
       const room = roomRef.current
       if (!room || room.localParticipant.isMicrophoneEnabled === micWant.current) return
-      try { await room.localParticipant.setMicrophoneEnabled(micWant.current) }
-      catch { micWant.current = false; setMicOn(false); setError('Microphone blocked. Allow it in the browser address bar.') }
+      try { await room.localParticipant.setMicrophoneEnabled(micWant.current); setError('') }
+      catch (e) { micWant.current = false; setMicOn(false); setError(deviceError(e, 'microphone')) }
     })
   }, [])
 
@@ -113,7 +122,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setStatus('connected')
       setJoinedAt(Date.now())
       if (modeRef.current === 'open') setMic(true)
-      if (withVideo) { setCamOn(true); room.localParticipant.setCameraEnabled(true).catch(() => { setCamOn(false); setError('Camera blocked. Allow it in the browser address bar.') }) }
+      if (withVideo) { setCamOn(true); room.localParticipant.setCameraEnabled(true).then(() => setError('')).catch((e: unknown) => { setCamOn(false); setError(deviceError(e, 'camera')) }) }
     } catch (e) {
       roomRef.current?.disconnect(); roomRef.current = null
       setStatus('idle'); setError(e instanceof Error ? e.message : 'Could not join the call')
@@ -132,7 +141,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     if (!room) return
     const on = !room.localParticipant.isCameraEnabled
     setCamOn(on)
-    room.localParticipant.setCameraEnabled(on).catch(() => { setCamOn(false); setError('Camera blocked. Allow it in the browser address bar.') })
+    room.localParticipant.setCameraEnabled(on).then(() => setError('')).catch((e: unknown) => { setCamOn(false); setError(deviceError(e, 'camera')) })
   }, [])
   // The browser's own "Stop sharing" bar also ends the track; LocalTrackUnpublished keeps the button in step.
   const toggleScreen = useCallback(() => {
@@ -158,6 +167,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     window.addEventListener('blur', pttUp)
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', pttUp) }
   }, [pttDown, pttUp])
+
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => setError(''), 6000)
+    return () => clearTimeout(t)
+  }, [error])
 
   useEffect(() => {
     let stop = false
