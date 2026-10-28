@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Phone, PhoneOff, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
@@ -12,6 +12,8 @@ import Discussion from './Discussion'
 import { useMedia } from '../media'
 import ChatBox from './ChatBox'
 import { QuickProvider, useQuick } from './quick'
+import { VoiceProvider, useVoice } from '../voice'
+import CallPanel from './CallPanel'
 
 const NAV = [
   { to: '/home', label: 'Home', icon: Home },
@@ -26,12 +28,17 @@ const NAV = [
 
 function Dock({ toggleChat }: { toggleChat: () => void }) {
   const quick = useQuick()
+  const voice = useVoice()
+  const inCall = voice.status === 'connected'
   const items = [
     { icon: Lightbulb, tip: 'New idea', cls: 'lilac', run: () => quick('idea') },
     { icon: HelpCircle, tip: 'Ask a question', cls: 'sky', run: () => quick('question') },
     { icon: CheckSquare, tip: 'New task', cls: 'pink', run: () => quick('todo') },
     { icon: CalendarDays, tip: 'New event', cls: 'sun', run: () => quick('event') },
     { icon: MessageCircle, tip: 'Team chat', cls: 'mint', run: toggleChat },
+    inCall
+      ? { icon: PhoneOff, tip: 'Leave live call', cls: 'dark', run: voice.leave }
+      : { icon: Phone, tip: voice.status === 'connecting' ? 'Joining…' : 'Join live call', cls: 'sky', run: () => { void voice.join() } },
     { icon: Plus, tip: 'New lead', cls: 'dark', run: () => quick('lead') },
   ]
   return (
@@ -84,6 +91,7 @@ export default function Layout() {
 
   return (
     <QuickProvider>
+      <VoiceProvider>
       <div className="stage">
         <div className="frame">
           <header className="topbar" ref={barRef}>
@@ -139,7 +147,9 @@ export default function Layout() {
           <Dock toggleChat={() => setChatOpen((v) => !v)} />
         </div>
         <ChatBox open={chatOpen} setOpen={setChatOpen} />
+        <CallPanel />
       </div>
+      </VoiceProvider>
     </QuickProvider>
   )
 }
