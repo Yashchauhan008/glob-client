@@ -139,7 +139,7 @@ function Whitelist() {
           return (
             <li key={i.email}>
               <span className="inv-mail">{i.email}</span>
-              <span className="chip">{i.blocked ? 'blocked' : i.name ? `joined as ${i.name}` : 'not signed up yet'}</span>
+              <span className={'chip ' + (i.blocked ? 'bad' : i.name ? 'ok' : 'wait')}>{i.blocked ? 'Blocked' : i.name ? `Joined as ${i.name}` : 'Not signed up yet'}</span>
               {!fixed && (
                 <button title="Remove from the list" aria-label={`Remove ${i.email}`} disabled={drop.isPending}
                   onClick={() => { if (confirm(`Remove ${i.email}? ${i.user_id ? 'They will be signed out right away.' : 'They will not be able to sign up.'}`)) drop.mutate(i.email) }}><UserRoundX size={15} /></button>

@@ -1089,3 +1089,26 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .tc-admin-row { margin-top: 10px; gap: 6px; }
 .tc-admin-row button { padding: 7px 8px; font-size: 12px; }
 .inv-head { cursor: default; }
+
+/* whitelist: full-height panel, readable rows, status colours that work in both themes */
+.invites { padding: 8px 24px 26px; }
+.inv-head { padding: 16px 0 14px; } .inv-head span { font-size: 18px; }
+.inv-add input { padding: 14px 20px; font-size: 15px; }
+.inv-add .btn { padding: 0 26px; }
+.inv-help { font-size: 13.5px; margin: 10px 0 4px; }
+.inv-list { max-height: none; overflow: visible; gap: 10px; margin-top: 18px; }
+.inv-list li { padding: 14px 12px 14px 20px; border-radius: 18px; gap: 14px; background: #f1f0ec; color: var(--text, var(--ink)); }
+.inv-mail { font-size: 15px; font-weight: 700; color: var(--text, var(--ink)); }
+.inv-list .chip { padding: 6px 14px; font-size: 12.5px; font-weight: 700; border-radius: 999px; }
+.inv-list .chip.ok { background: #d3f2cc; color: #1f5a1a; }
+.inv-list .chip.wait { background: #fbe9b8; color: #6b4b00; }
+.inv-list .chip.bad { background: #f9d2d2; color: #7a1f1f; }
+.inv-list li > button { width: 36px; height: 36px; color: #7d7d85; }
+.inv-list li > button:hover { background: #f9d2d2; color: #7a1f1f; }
+[data-theme='dark'] .inv-list li { background: #303038; }
+[data-theme='dark'] .inv-list .chip.ok { background: #1f3d24; color: #b8f0b0; }
+[data-theme='dark'] .inv-list .chip.wait { background: #473a16; color: #f3d889; }
+[data-theme='dark'] .inv-list .chip.bad { background: #4a2424; color: #ffb4b4; }
+[data-theme='dark'] .inv-list li > button { color: #a9a9b3; }
+[data-theme='dark'] .inv-list li > button:hover { background: #4a2424; color: #ffb4b4; }
+@media (max-width: 760px) { .invites { padding: 6px 16px 20px; } .inv-list li { flex-wrap: wrap; padding: 12px 10px 12px 16px; } .inv-mail { flex-basis: 100%; } }
