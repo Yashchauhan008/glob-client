@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Camera, Check, Pencil, Trash2, X } from 'lucide-react'
-import { api, uploadImage } from '../api'
+import { api, uploadAvatar } from '../api'
 import { useAuth } from '../auth'
 import { Empty, Header } from '../components/ui'
-import { Face, squareAvatar, useTeam } from '../components/Avatar'
+import { Face, useTeam } from '../components/Avatar'
 import { colorFor, usePresence } from '../presence'
 import type { TeamMember } from '../types'
 
@@ -25,19 +25,18 @@ function Card({ m, mine, online }: { m: TeamMember; mine: boolean; online: boole
   const [err, setErr] = useState('')
   const file = useRef<HTMLInputElement>(null)
 
+  const done = (r: { name: string; avatar_url: string | null }) => {
+    updateUser({ name: r.name, avatar_url: r.avatar_url }); qc.invalidateQueries({ queryKey: ['team'] }); setEditing(false); setErr('')
+  }
   const save = useMutation({
-    mutationFn: (body: { name?: string; avatar_file_id?: string | null }) =>
-      api.patch<{ name: string; avatar_url: string | null }>('/team/me', body),
-    onSuccess: (r) => { updateUser({ name: r.name, avatar_url: r.avatar_url }); qc.invalidateQueries({ queryKey: ['team'] }); setEditing(false); setErr('') },
+    mutationFn: (body: { name?: string; remove_avatar?: boolean }) => api.patch<{ name: string; avatar_url: string | null }>('/team/me', body),
+    onSuccess: done,
     onError: (e: Error) => setErr(e.message),
   })
+  const upload = useMutation({ mutationFn: uploadAvatar, onSuccess: done, onError: (e: Error) => setErr(e.message) })
+  const busy = save.isPending || upload.isPending
 
-  const pick = async (f: File | undefined) => {
-    if (!f) return
-    setErr('')
-    try { const up = await uploadImage(await squareAvatar(f)); save.mutate({ avatar_file_id: up.file_id }) }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Could not upload that picture') }
-  }
+  const pick = (f: File | undefined) => { if (f) { setErr(''); upload.mutate(f) } }
 
   return (
     <div className={'team-card' + (mine ? ' mine' : '')}>
@@ -45,15 +44,15 @@ function Card({ m, mine, online }: { m: TeamMember; mine: boolean; online: boole
         <i style={{ background: colorFor(m.id) }}><Face id={m.id} name={m.name} /></i>
         {online && <b className="tc-online" title="Online now" />}
         {mine && (
-          <button className="tc-cam" title="Change picture" disabled={save.isPending} onClick={() => file.current?.click()}><Camera size={15} /></button>
+          <button className="tc-cam" title="Change picture" disabled={busy} onClick={() => file.current?.click()}><Camera size={15} /></button>
         )}
-        <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = '' }} />
+        <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
       </div>
 
       {editing ? (
         <form className="tc-edit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) save.mutate({ name: name.trim() }) }}>
           <input autoFocus value={name} maxLength={80} onChange={(e) => setName(e.target.value)} aria-label="Your name" />
-          <button type="submit" className="ok" title="Save" disabled={save.isPending || !name.trim()}><Check size={16} /></button>
+          <button type="submit" className="ok" title="Save" disabled={busy || !name.trim()}><Check size={16} /></button>
           <button type="button" title="Cancel" onClick={() => { setEditing(false); setName(m.name); setErr('') }}><X size={16} /></button>
         </form>
       ) : (
@@ -68,7 +67,7 @@ function Card({ m, mine, online }: { m: TeamMember; mine: boolean; online: boole
         <span><b>{online ? 'now' : ago(m.last_active)}</b>active</span>
       </div>
       <small className="tc-joined">Joined {new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>
-      {mine && m.avatar_url && <button className="tc-remove" disabled={save.isPending} onClick={() => save.mutate({ avatar_file_id: null })}><Trash2 size={13} /> Remove picture</button>}
+      {mine && m.avatar_url && <button className="tc-remove" disabled={busy} onClick={() => save.mutate({ remove_avatar: true })}><Trash2 size={13} /> Remove picture</button>}
     </div>
   )
 }
