@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { Maximize2, Mic, MicOff, Minimize2, PhoneOff, Video, VideoOff, Radio } from 'lucide-react'
 import { Track, type Participant } from 'livekit-client'
 import { useVoice } from '../voice'
 import { colorFor, initials } from '../presence'
 
-function Tile({ p, talking }: { p: Participant; talking: boolean }) {
+const Tile = memo(function Tile({ p, talking, micOn, tick }: { p: Participant; talking: boolean; micOn: boolean; tick: number }) {
+  void tick
   const ref = useRef<HTMLVideoElement>(null)
   const track = p.getTrackPublication(Track.Source.Camera)?.videoTrack
   useEffect(() => {
@@ -16,10 +17,10 @@ function Tile({ p, talking }: { p: Participant; talking: boolean }) {
   return (
     <div className={'call-tile' + (talking ? ' talking' : '')}>
       {track ? <video ref={ref} autoPlay playsInline muted /> : <i style={{ background: colorFor(p.identity) }}>{initials(p.name || '?')}</i>}
-      <span>{p.isLocal ? 'You' : p.name}{!p.isMicrophoneEnabled && ' · muted'}</span>
+      <span>{p.isLocal ? 'You' : p.name}{!(p.isLocal ? micOn : p.isMicrophoneEnabled) && ' · muted'}</span>
     </div>
   )
-}
+})
 
 export default function CallPanel() {
   const v = useVoice()
@@ -59,7 +60,8 @@ export default function CallPanel() {
           <button title={full ? 'Back to corner' : 'Full screen'} onClick={() => { setFull(!full); setMini(false) }}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
         </span>
       </div>
-      {!mini && <div className="call-grid">{v.participants.map((p) => <Tile key={p.identity} p={p} talking={v.speaking.has(p.identity)} />)}</div>}
+      {!mini && <div className="call-grid">{v.participants.map((p) => <Tile key={p.identity} p={p} talking={v.speaking.has(p.identity)} micOn={v.micOn} tick={v.tick} />)}</div>}
+      {!mini && v.participants.length === 1 && <div className="call-wait">Waiting for others to join the call…</div>}
       {v.error && <div className="call-err">{v.error}</div>}
       <div className="call-bar">
         <div className="seg">

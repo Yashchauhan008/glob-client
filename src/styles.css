@@ -910,3 +910,4 @@ nav.open .nav-item.active .nav-badge { border-color: var(--paper); }
 .call-bar .round small { position: absolute; bottom: -2px; font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .call-bar .round.ptt svg { margin-bottom: 4px; }
 @media (max-width: 700px) { .call-panel:not(.full) { width: 240px; bottom: 80px; } }
+.call-wait { margin: 0 10px 8px; font-size: 12px; opacity: .7; text-align: center; }
