@@ -24,6 +24,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     },
   })
   if (res.status === 401 && token && !path.startsWith('/auth')) {
+    // the admin may have blocked or removed this person: say why on the sign-in page
+    try { const j = await res.clone().json(); if (j?.code === 'access_removed') sessionStorage.setItem('glob_notice', j.message) } catch { /* no reason given */ }
     setToken(null)
     window.location.href = '/login'
   }

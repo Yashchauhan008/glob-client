@@ -48,7 +48,9 @@ function Field({ label, type = 'text', ...rest }: { label: string; type?: string
 export function Login() {
   const { signIn } = useAuth()
   const nav = useNavigate()
-  const [err, setErr] = useState('')
+  const [err, setErr] = useState(() => {
+    try { const n = sessionStorage.getItem('glob_notice') ?? ''; sessionStorage.removeItem('glob_notice'); return n } catch { return '' }
+  })
   const [busy, setBusy] = useState(false)
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {

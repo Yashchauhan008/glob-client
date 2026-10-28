@@ -1,5 +1,9 @@
 export type User = { id: string; name: string; email: string; avatar_url?: string | null }
-export type TeamMember = User & { created_at: string; ideas: number; tasks_done: number; last_active: string | null }
+export type TeamMember = User & {
+  created_at: string; ideas: number; tasks_done: number; last_active: string | null
+  status: 'active' | 'blocked' | 'not_invited'; is_root: boolean
+}
+export type Invite = { email: string; created_at: string; user_id: string | null; name: string | null; blocked: boolean; added_by: string | null }
 
 export const IDEA_STATUSES = ['idea', 'planning', 'building', 'paused', 'dropped', 'shipped'] as const
 export const STAGES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const

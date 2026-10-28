@@ -1043,3 +1043,21 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .user { position: relative; } .user-dot { position: absolute; top: 4px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: #e5483b; border: 2px solid var(--ink); }
 [data-theme='dark'] .menu a { color: var(--text); } [data-theme='dark'] .menu a:hover, [data-theme='dark'] .menu a.on { background: #2e2e34; }
 .menu { min-width: 190px; }
+
+/* team: admin tools (invites, block, remove) */
+.invites { background: var(--surface, #fff); color: var(--text, var(--ink)); border-radius: var(--r); box-shadow: 0 0 0 1px var(--line); padding: 6px 18px 16px; margin-bottom: 18px; }
+.inv-head { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: none; border: 0; padding: 12px 0; cursor: pointer; color: inherit; text-align: left; }
+.inv-head span { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; } .inv-head small { color: var(--muted); font-size: 12px; }
+.inv-add { display: flex; gap: 8px; } .inv-add input { flex: 1; min-width: 0; border-radius: 999px; }
+.inv-note { font-size: 13px; font-weight: 600; margin-top: 8px; } .inv-help { margin-top: 8px; }
+.inv-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
+.inv-list li { display: flex; align-items: center; gap: 10px; background: var(--side); border-radius: 14px; padding: 8px 8px 8px 14px; }
+.inv-mail { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-list .chip { background: var(--surface, #fff); white-space: nowrap; font-size: 11.5px; }
+.inv-list li > button { width: 30px; height: 30px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; flex: none; } .inv-list li > button:hover { color: var(--red); background: var(--surface, #fff); }
+.team-card.off { opacity: .6; }
+.tc-admin { background: #bff0b6; display: inline-flex; align-items: center; gap: 3px; } .tc-blocked { background: #f9d2d2; color: #7a1f1f; }
+.tc-admin-row { display: flex; gap: 8px; margin-top: 12px; width: 100%; }
+.tc-admin-row button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 999px; padding: 8px 10px; font-size: 12.5px; font-weight: 700; background: var(--side); color: var(--text, var(--ink)); cursor: pointer; }
+.tc-admin-row button.danger:hover { background: #f9d2d2; color: #7a1f1f; } .tc-admin-row button:disabled { opacity: .5; cursor: default; }
+@media (max-width: 760px) { .inv-add { flex-direction: column; } }
