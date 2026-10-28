@@ -5,7 +5,12 @@ import { api } from './api'
 export type MicMode = 'open' | 'ptt'
 type Status = 'idle' | 'connecting' | 'connected'
 
+export type LiveInfo = { active: boolean; startedAt: number | null; participants: { id: string; name: string }[]; video: boolean }
+const NOBODY: LiveInfo = { active: false, startedAt: null, participants: [], video: false }
+
 type VoiceCtx = {
+  live: LiveInfo
+  joinedAt: number | null
   status: Status
   error: string
   room: Room | null
@@ -15,7 +20,7 @@ type VoiceCtx = {
   mode: MicMode
   micOn: boolean
   camOn: boolean
-  join: () => Promise<void>
+  join: (withVideo?: boolean) => Promise<void>
   leave: () => void
   setMode: (m: MicMode) => void
   toggleMic: () => void
@@ -43,6 +48,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const modeRef = useRef<MicMode>('open')
   const [micOn, setMicOn] = useState(false)
   const [camOn, setCamOn] = useState(false)
+  const [live, setLive] = useState<LiveInfo>(NOBODY)
+  const [joinedAt, setJoinedAt] = useState<number | null>(null)
 
   const rerender = useCallback(() => bump((n) => n + 1), [])
 
@@ -66,10 +73,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     roomRef.current?.disconnect()
     roomRef.current = null
     audioBox.current?.replaceChildren()
-    micWant.current = false; setStatus('idle'); setMicOn(false); setCamOn(false); setSpeaking(new Set())
+    micWant.current = false; setStatus('idle'); setJoinedAt(null); setMicOn(false); setCamOn(false); setSpeaking(new Set())
   }, [])
 
-  const join = useCallback(async () => {
+  const join = useCallback(async (withVideo = false) => {
     if (roomRef.current) return
     setError(''); setStatus('connecting')
     try {
@@ -98,7 +105,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await room.connect(url, token)
       await room.startAudio()
       setStatus('connected')
+      setJoinedAt(Date.now())
       if (modeRef.current === 'open') setMic(true)
+      if (withVideo) { setCamOn(true); room.localParticipant.setCameraEnabled(true).catch(() => { setCamOn(false); setError('Camera blocked. Allow it in the browser address bar.') }) }
     } catch (e) {
       roomRef.current?.disconnect(); roomRef.current = null
       setStatus('idle'); setError(e instanceof Error ? e.message : 'Could not join the call')
@@ -132,14 +141,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', pttUp) }
   }, [pttDown, pttUp])
 
+  useEffect(() => {
+    let stop = false
+    const load = () => api.get<LiveInfo>('/voice/status').then((r) => { if (!stop) setLive(r) }).catch(() => {})
+    load()
+    const i = setInterval(() => { if (!document.hidden) load() }, 6000)
+    return () => { stop = true; clearInterval(i) }
+  }, [])
+
   useEffect(() => () => { roomRef.current?.disconnect() }, [])
 
   const value = useMemo<VoiceCtx>(() => {
     const room = roomRef.current
     const participants = room ? [room.localParticipant, ...room.remoteParticipants.values()] : []
-    return { status, error, room, participants, tick, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp }
+    return { live, joinedAt, status, error, room, participants, tick, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp }
     // `tick` changes whenever someone joins, leaves or (un)mutes, so the participant list refreshes
-  }, [tick, status, error, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp])
+  }, [tick, live, joinedAt, status, error, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp])
   return (
     <Ctx.Provider value={value}>
       {children}
