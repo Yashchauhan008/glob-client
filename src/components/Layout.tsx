@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, ShieldCheck, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
@@ -12,6 +12,7 @@ import Discussion from './Discussion'
 import { useMedia } from '../media'
 import ChatBox from './ChatBox'
 import { Face } from './Avatar'
+import { useAdmin } from '../admin'
 import { QuickProvider, useQuick } from './quick'
 import { VoiceProvider } from '../voice'
 import CallPanel from './CallPanel'
@@ -54,6 +55,7 @@ export default function Layout() {
   const wide = useMedia('(min-width: 1101px)')
   const { pathname } = useLocation()
   const alerts = useAlerts(pathname)
+  const admin = useAdmin()
   const ideaMatch = matchPath('/ideas/:id', pathname)
   const boardMatch = matchPath('/boards/:id', pathname) // the whiteboard needs the whole width
   const [chatOpen, setChatOpen] = useState(false)
@@ -137,6 +139,12 @@ export default function Layout() {
                     {to === '/activity' && !!alerts?.activity && <span className="menu-badge" title={ALERT_TIP.activity(alerts.activity)}>{alerts.activity > 9 ? '9+' : alerts.activity}</span>}
                   </Link>
                 ))}
+                {admin.isRoot && (
+                  <button role="switch" aria-checked={admin.on} className="menu-switch" onClick={() => admin.setOn(!admin.on)}>
+                    <ShieldCheck size={16} /> Admin mode
+                    <span className={'sw' + (admin.on ? ' on' : '')}><i /></span>
+                  </button>
+                )}
                 <hr />
                 <button onClick={toggle}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button><button onClick={signOut}><LogOut size={16} /> Log out</button>
               </div>}
