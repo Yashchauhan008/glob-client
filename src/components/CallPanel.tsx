@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { Maximize2, MonitorOff, MonitorUp, Mic, MicOff, Minimize2, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
+import { Maximize2, Minimize2, Minus, Mic, MicOff, MonitorOff, MonitorUp, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
 import { Track, type Participant } from 'livekit-client'
 import { useVoice } from '../voice'
 import { colorFor, initials } from '../presence'
@@ -86,41 +86,74 @@ function Pill() {
   )
 }
 
-type Source = 'camera' | 'screen'
+const MAX_SMALL = 8
 
-const Tile = memo(function Tile({ p, source, talking, tick }: { p: Participant; source: Source; talking: boolean; tick: number }) {
-  void tick
+/** Keep at most `max` tiles; the last slot becomes a "+N" tile so nobody is silently cut off. */
+const cap = <T,>(list: T[], max: number) =>
+  list.length > max ? { shown: list.slice(0, max - 1), extra: list.length - (max - 1) } : { shown: list, extra: 0 }
+
+function useAttach(track: { attach: (el: HTMLVideoElement) => unknown; detach: (el: HTMLVideoElement) => unknown } | undefined) {
   const ref = useRef<HTMLVideoElement>(null)
-  const track = p.getTrackPublication(source === 'screen' ? Track.Source.ScreenShare : Track.Source.Camera)?.videoTrack
   useEffect(() => {
     const el = ref.current
     if (!el || !track) return
     track.attach(el)
     return () => { track.detach(el) }
   }, [track])
-  const who = p.isLocal ? 'You' : p.name
+  return ref
+}
+
+/** One person: their camera, or an avatar when it's off. */
+const PersonTile = memo(function PersonTile({ p, talking, micOn, tick }: { p: Participant; talking: boolean; micOn: boolean; tick: number }) {
+  void tick
+  const track = p.isCameraEnabled ? p.getTrackPublication(Track.Source.Camera)?.videoTrack : undefined
+  const ref = useAttach(track)
+  const muted = !(p.isLocal ? micOn : p.isMicrophoneEnabled)
   return (
-    <div className={'vp-tile' + (source === 'screen' ? ' screen' : '') + (talking ? ' talking' : '')}>
-      <video ref={ref} autoPlay playsInline muted />
-      <span>{source === 'screen' ? p.isLocal ? 'Your screen' : `${who}'s screen` : who}</span>
+    <div className={'vp-tile' + (talking ? ' talking' : '')}>
+      {track ? <video ref={ref} autoPlay playsInline muted /> : <i className="vp-av" style={{ background: colorFor(p.identity) }}>{initials(p.name || '?')}</i>}
+      <span>{p.isLocal ? 'You' : p.name}{muted && <MicOff size={11} />}</span>
     </div>
   )
 })
 
-/** Only exists while a camera or a screen share is on. Drag it, snap it to a corner, or take it full screen. */
+/** Someone else's shared screen. Yours is never played back to you (it would mirror itself). */
+const ScreenTile = memo(function ScreenTile({ p, tick }: { p: Participant; tick: number }) {
+  void tick
+  const ref = useAttach(p.getTrackPublication(Track.Source.ScreenShare)?.videoTrack)
+  return (
+    <div className="vp-tile screen">
+      <video ref={ref} autoPlay playsInline muted />
+      <span>{p.name}'s screen</span>
+    </div>
+  )
+})
+
+/** Only exists while a camera or screen share is on. Everyone in the call gets a tile. */
 function VideoPopup() {
   const v = useVoice()
   const [full, setFull] = useState(false)
+  const [mini, setMini] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<{ dx: number; dy: number } | null>(null)
 
-  const tiles: { p: Participant; source: Source }[] = v.participants.flatMap((p) => [
-    ...(p.isCameraEnabled ? [{ p, source: 'camera' as const }] : []),
-    ...(p.isScreenShareEnabled ? [{ p, source: 'screen' as const }] : []),
-  ]).sort((a, b) => Number(b.source === 'screen') - Number(a.source === 'screen'))
-  if (v.status !== 'connected' || !tiles.length) return null
-  const hasScreen = tiles.some((t) => t.source === 'screen')
+  const screens = v.participants.filter((p) => p.isScreenShareEnabled && !p.isLocal)
+  const presenting = v.screenOn
+  const anyVideo = v.participants.some((p) => p.isCameraEnabled) || screens.length > 0 || presenting
+  if (v.status !== 'connected' || !anyVideo) return null
+
+  // people with a camera first, so they are never the ones hidden behind "+N"
+  const people = [...v.participants].sort((a, b) => Number(b.isCameraEnabled) - Number(a.isCameraEnabled))
+  const stage = screens.length > 0
+  const n = people.length
+  const { shown, extra } = cap(people, stage ? 5 : full ? 24 : MAX_SMALL)
+  const slots = shown.length + (extra ? 1 : 0)
+
+  // grid shape follows head-count (like Meet): 1 → 1 col, 2–4 → 2 cols, more → 3
+  const cols = full ? (slots <= 1 ? 1 : slots === 2 ? 2 : Math.ceil(Math.sqrt(slots))) : slots <= 1 ? 1 : slots <= 4 ? 2 : 3
+  const rows = Math.ceil(slots / cols)
+  const size = stage || presenting ? 'w-screen' : n <= 1 ? 'w-1' : n <= 4 ? 'w-2' : 'w-3'
 
   const onDown = (e: React.PointerEvent) => {
     if (full || (e.target as HTMLElement).closest('button') || !box.current) return
@@ -141,16 +174,39 @@ function VideoPopup() {
     setPos({ x: left ? 16 : window.innerWidth - width - 16, y: top ? 76 : window.innerHeight - height - 84 })
   }
 
+  const people$ = (
+    <>
+      {shown.map((p) => <PersonTile key={p.identity} p={p} talking={v.speaking.has(p.identity)} micOn={v.micOn} tick={v.tick} />)}
+      {extra > 0 && <div className="vp-tile more"><b>+{extra}</b><span>more</span></div>}
+    </>
+  )
+
   const style = full || !pos ? undefined : { left: pos.x, top: pos.y, bottom: 'auto' }
   return (
-    <div ref={box} className={'vpop' + (full ? ' full' : '') + (hasScreen ? ' has-screen' : '')} style={style}>
-      <div className="vp-head" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-        <b>{hasScreen ? <MonitorUp size={14} /> : <Video size={14} />} {hasScreen ? 'Screen share' : `Video · ${tiles.length}`}</b>
+    <div ref={box} className={'vpop ' + size + (full ? ' full' : '') + (mini ? ' mini' : '')} style={style}>
+      <div className="vp-head" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onClick={() => { if (mini) setMini(false) }}>
+        <b>{stage || presenting ? <MonitorUp size={14} /> : <Video size={14} />} {stage || presenting ? 'Screen share' : 'Video'} · {n}</b>
         <span>
-          <button title={full ? 'Exit full screen' : 'Full screen'} onClick={() => setFull(!full)}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
+          <button title={mini ? 'Restore' : 'Minimise'} onClick={(e) => { e.stopPropagation(); setMini(!mini); setFull(false) }}>{mini ? <Maximize2 size={14} /> : <Minus size={14} />}</button>
+          {!mini && <button title={full ? 'Exit full screen' : 'Full screen'} onClick={() => setFull(!full)}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>}
         </span>
       </div>
-      <div className="vp-grid">{tiles.map(({ p, source }) => <Tile key={p.identity + source} p={p} source={source} talking={v.speaking.has(p.identity)} tick={v.tick} />)}</div>
+      {!mini && presenting && (
+        <div className="vp-presenting">
+          <MonitorUp size={16} /><b>You're presenting to everyone</b>
+          <button onClick={v.toggleScreen}>Stop</button>
+        </div>
+      )}
+      {!mini && (stage ? (
+        <div className="vp-stage">
+          <div className="vp-main" style={{ gridTemplateColumns: `repeat(${screens.length > 1 ? 2 : 1}, 1fr)` }}>
+            {screens.map((p) => <ScreenTile key={p.identity} p={p} tick={v.tick} />)}
+          </div>
+          <div className="vp-strip">{people$}</div>
+        </div>
+      ) : (
+        <div className="vp-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, ...(full ? { gridTemplateRows: `repeat(${rows}, 1fr)` } : {}) }}>{people$}</div>
+      ))}
     </div>
   )
 }
