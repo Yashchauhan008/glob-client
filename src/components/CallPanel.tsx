@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
+import { Maximize2, MonitorOff, MonitorUp, Mic, MicOff, Minimize2, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
 import { Track, type Participant } from 'livekit-client'
 import { useVoice } from '../voice'
 import { colorFor, initials } from '../presence'
@@ -71,6 +71,7 @@ function Pill() {
                 {v.micOn ? <Mic size={17} /> : <MicOff size={17} />}<small>hold</small>
               </button>}
           <button className={'cp-btn' + (v.camOn ? ' on' : ' off')} title={v.camOn ? 'Camera off' : 'Camera on'} onClick={v.toggleCam}>{v.camOn ? <Video size={17} /> : <VideoOff size={17} />}</button>
+          {v.canShare && <button className={'cp-btn' + (v.screenOn ? ' on' : ' off')} title={v.screenOn ? 'Stop sharing screen' : 'Share your screen'} onClick={v.toggleScreen}>{v.screenOn ? <MonitorOff size={17} /> : <MonitorUp size={17} />}</button>}
           <button className="cp-btn end" title="Leave call" onClick={v.leave}><PhoneOff size={17} /></button>
         </>
       ) : (
@@ -85,25 +86,28 @@ function Pill() {
   )
 }
 
-const Tile = memo(function Tile({ p, talking, tick }: { p: Participant; talking: boolean; tick: number }) {
+type Source = 'camera' | 'screen'
+
+const Tile = memo(function Tile({ p, source, talking, tick }: { p: Participant; source: Source; talking: boolean; tick: number }) {
   void tick
   const ref = useRef<HTMLVideoElement>(null)
-  const track = p.getTrackPublication(Track.Source.Camera)?.videoTrack
+  const track = p.getTrackPublication(source === 'screen' ? Track.Source.ScreenShare : Track.Source.Camera)?.videoTrack
   useEffect(() => {
     const el = ref.current
     if (!el || !track) return
     track.attach(el)
     return () => { track.detach(el) }
   }, [track])
+  const who = p.isLocal ? 'You' : p.name
   return (
-    <div className={'vp-tile' + (talking ? ' talking' : '')}>
+    <div className={'vp-tile' + (source === 'screen' ? ' screen' : '') + (talking ? ' talking' : '')}>
       <video ref={ref} autoPlay playsInline muted />
-      <span>{p.isLocal ? 'You' : p.name}</span>
+      <span>{source === 'screen' ? `${who}'s screen` : who}</span>
     </div>
   )
 })
 
-/** Only exists while someone's camera is on. Drag it, snap it to a corner, or take it full screen. */
+/** Only exists while a camera or someone else's screen is on. Drag it, snap it to a corner, or take it full screen. */
 function VideoPopup() {
   const v = useVoice()
   const [full, setFull] = useState(false)
@@ -112,8 +116,13 @@ function VideoPopup() {
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<{ dx: number; dy: number } | null>(null)
 
-  const withVideo = v.participants.filter((p) => p.isCameraEnabled)
-  if (v.status !== 'connected' || !withVideo.length) return null
+  // your own screen is not shown back to you (it would mirror itself endlessly)
+  const tiles: { p: Participant; source: Source }[] = v.participants.flatMap((p) => [
+    ...(p.isCameraEnabled ? [{ p, source: 'camera' as const }] : []),
+    ...(p.isScreenShareEnabled && !p.isLocal ? [{ p, source: 'screen' as const }] : []),
+  ]).sort((a, b) => Number(b.source === 'screen') - Number(a.source === 'screen'))
+  if (v.status !== 'connected' || !tiles.length) return null
+  const hasScreen = tiles.some((t) => t.source === 'screen')
 
   const onDown = (e: React.PointerEvent) => {
     if (full || (e.target as HTMLElement).closest('button') || !box.current) return
@@ -136,15 +145,15 @@ function VideoPopup() {
 
   const style = full || !pos ? undefined : { left: pos.x, top: pos.y, bottom: 'auto' }
   return (
-    <div ref={box} className={'vpop' + (full ? ' full' : '') + (mini ? ' mini' : '')} style={style}>
+    <div ref={box} className={'vpop' + (full ? ' full' : '') + (mini ? ' mini' : '') + (hasScreen ? ' has-screen' : '')} style={style}>
       <div className="vp-head" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-        <b><Video size={14} /> Video · {withVideo.length}</b>
+        <b>{hasScreen ? <MonitorUp size={14} /> : <Video size={14} />} {hasScreen ? 'Screen share' : `Video · ${tiles.length}`}</b>
         <span>
           <button title={mini ? 'Expand' : 'Minimise'} onClick={() => setMini(!mini)}>{mini ? <Maximize2 size={14} /> : <Minimize2 size={14} />}</button>
           <button title={full ? 'Back to corner' : 'Full screen'} onClick={() => { setFull(!full); setMini(false) }}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
         </span>
       </div>
-      {!mini && <div className="vp-grid">{withVideo.map((p) => <Tile key={p.identity} p={p} talking={v.speaking.has(p.identity)} tick={v.tick} />)}</div>}
+      {!mini && <div className="vp-grid">{tiles.map(({ p, source }) => <Tile key={p.identity + source} p={p} source={source} talking={v.speaking.has(p.identity)} tick={v.tick} />)}</div>}
     </div>
   )
 }

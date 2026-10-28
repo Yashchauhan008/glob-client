@@ -6,6 +6,8 @@ export type MicMode = 'open' | 'ptt'
 type Status = 'idle' | 'connecting' | 'connected'
 
 export type LiveInfo = { active: boolean; startedAt: number | null; participants: { id: string; name: string }[]; video: boolean }
+// phones and tablets cannot capture their screen from a web page; they can still watch
+const CAN_SHARE = typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
 const NOBODY: LiveInfo = { active: false, startedAt: null, participants: [], video: false }
 
 type VoiceCtx = {
@@ -20,11 +22,14 @@ type VoiceCtx = {
   mode: MicMode
   micOn: boolean
   camOn: boolean
+  screenOn: boolean
+  canShare: boolean
   join: (withVideo?: boolean) => Promise<void>
   leave: () => void
   setMode: (m: MicMode) => void
   toggleMic: () => void
   toggleCam: () => void
+  toggleScreen: () => void
   pttDown: () => void
   pttUp: () => void
 }
@@ -48,6 +53,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const modeRef = useRef<MicMode>('open')
   const [micOn, setMicOn] = useState(false)
   const [camOn, setCamOn] = useState(false)
+  const [screenOn, setScreenOn] = useState(false)
   const [live, setLive] = useState<LiveInfo>(NOBODY)
   const [joinedAt, setJoinedAt] = useState<number | null>(null)
 
@@ -73,7 +79,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     roomRef.current?.disconnect()
     roomRef.current = null
     audioBox.current?.replaceChildren()
-    micWant.current = false; setStatus('idle'); setJoinedAt(null); setMicOn(false); setCamOn(false); setSpeaking(new Set())
+    micWant.current = false; setStatus('idle'); setJoinedAt(null); setMicOn(false); setCamOn(false); setScreenOn(false); setSpeaking(new Set())
   }, [])
 
   const join = useCallback(async (withVideo = false) => {
@@ -100,7 +106,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         .on(RoomEvent.TrackMuted, rerender)
         .on(RoomEvent.TrackUnmuted, rerender)
         .on(RoomEvent.LocalTrackPublished, rerender)
-        .on(RoomEvent.LocalTrackUnpublished, rerender)
+        .on(RoomEvent.LocalTrackUnpublished, () => { setScreenOn(room.localParticipant.isScreenShareEnabled); rerender() })
         .on(RoomEvent.Disconnected, () => { if (roomRef.current === room) leave() })
       await room.connect(url, token)
       await room.startAudio()
@@ -128,6 +134,18 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setCamOn(on)
     room.localParticipant.setCameraEnabled(on).catch(() => { setCamOn(false); setError('Camera blocked. Allow it in the browser address bar.') })
   }, [])
+  // The browser's own "Stop sharing" bar also ends the track; LocalTrackUnpublished keeps the button in step.
+  const toggleScreen = useCallback(() => {
+    const room = roomRef.current
+    if (!room || !CAN_SHARE) return
+    const on = !room.localParticipant.isScreenShareEnabled
+    setScreenOn(on)
+    room.localParticipant.setScreenShareEnabled(on, { contentHint: 'detail' }).catch((e: unknown) => {
+      setScreenOn(false)
+      // closing the browser's picker is a cancel, not an error
+      if (!(e instanceof Error && /permission|denied|notallowed|abort/i.test(e.name + e.message))) setError('Could not share the screen.')
+    })
+  }, [])
   const pttDown = useCallback(() => { if (modeRef.current === 'ptt') setMic(true) }, [setMic])
   const pttUp = useCallback(() => { if (modeRef.current === 'ptt') setMic(false) }, [setMic])
 
@@ -154,9 +172,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const value = useMemo<VoiceCtx>(() => {
     const room = roomRef.current
     const participants = room ? [room.localParticipant, ...room.remoteParticipants.values()] : []
-    return { live, joinedAt, status, error, room, participants, tick, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp }
+    return { live, joinedAt, status, error, room, participants, tick, speaking, mode, micOn, camOn, screenOn, canShare: CAN_SHARE, join, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp }
     // `tick` changes whenever someone joins, leaves or (un)mutes, so the participant list refreshes
-  }, [tick, live, joinedAt, status, error, speaking, mode, micOn, camOn, join, leave, setMode, toggleMic, toggleCam, pttDown, pttUp])
+  }, [tick, live, joinedAt, status, error, speaking, mode, micOn, camOn, screenOn, join, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp])
   return (
     <Ctx.Provider value={value}>
       {children}

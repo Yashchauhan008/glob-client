@@ -929,4 +929,8 @@ nav.open .nav-item.active .nav-badge { border-color: var(--paper); }
 .vp-tile.talking { outline-color: #34c759; }
 .vp-tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .vp-tile span { position: absolute; left: 6px; bottom: 6px; font-size: 11px; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 999px; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 760px) { .call-dock { left: 12px; bottom: 84px; max-width: calc(100vw - 24px); } .vpop:not(.full) { width: 240px; left: 12px; bottom: 150px; } }
+.vp-tile.screen { grid-column: 1 / -1; aspect-ratio: 16 / 9; background: #000; }
+.vp-tile.screen video { object-fit: contain; }
+.vpop.has-screen:not(.full) { width: min(520px, calc(100vw - 32px)); }
+.vpop.full .vp-tile.screen { grid-row: span 2; }
+@media (max-width: 760px) { .call-dock { left: 12px; bottom: 84px; max-width: calc(100vw - 24px); } .vpop:not(.full):not(.has-screen) { width: 240px; } .vpop:not(.full) { left: 12px; bottom: 150px; } }
