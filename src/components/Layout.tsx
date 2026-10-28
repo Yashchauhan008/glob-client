@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
+import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
@@ -25,19 +25,20 @@ const NAV = [
   { to: '/leads', label: 'CRM', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/boards', label: 'Boards', icon: Presentation },
-  { to: '/activity', label: 'Activity', icon: History },
-  { to: '/team', label: 'Team', icon: UserRound },
 ]
 
-function Dock({ toggleChat }: { toggleChat: () => void }) {
+// reached from the profile menu instead of the top bar
+const MENU_LINKS = [
+  { to: '/team', label: 'Team', icon: UserRound },
+  { to: '/activity', label: 'Activity', icon: History },
+]
+
+function Dock() {
   const quick = useQuick()
   const items = [
     { icon: Lightbulb, tip: 'New idea', cls: 'lilac', run: () => quick('idea') },
-    { icon: HelpCircle, tip: 'Ask a question', cls: 'sky', run: () => quick('question') },
     { icon: CheckSquare, tip: 'New task', cls: 'pink', run: () => quick('todo') },
     { icon: CalendarDays, tip: 'New event', cls: 'sun', run: () => quick('event') },
-    { icon: MessageCircle, tip: 'Team chat', cls: 'mint', run: toggleChat },
-    { icon: Plus, tip: 'New lead', cls: 'dark', run: () => quick('lead') },
   ]
   return (
     <div className="dock">
@@ -59,7 +60,7 @@ export default function Layout() {
   const [menu, setMenu] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   useEffect(() => { setNavOpen(false); setMenu(false) }, [pathname])
-  const current = NAV.find((n) => pathname === n.to || pathname.startsWith(n.to + '/'))
+  const current = [...NAV, ...MENU_LINKS].find((n) => pathname === n.to || pathname.startsWith(n.to + '/'))
   const barRef = useRef<HTMLElement>(null)
   const islandRef = useRef<HTMLDivElement>(null)
 
@@ -129,7 +130,16 @@ export default function Layout() {
                 <i className="me-av" style={{ background: colorFor(user!.id) }}><Face id={user!.id} name={user!.name} /></i>
                 <span><b>{user!.name}</b><small>{user!.email}</small></span><ChevronDown size={16} />
               </button>
-              {menu && <div className="menu"><button onClick={toggle}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button><button onClick={signOut}><LogOut size={16} /> Log out</button></div>}
+              {menu && <div className="menu">
+                {MENU_LINKS.map(({ to, label, icon: Icon }) => (
+                  <Link key={to} to={to} className={pathname === to ? 'on' : ''}>
+                    <Icon size={16} /> {label}
+                    {to === '/activity' && !!alerts?.activity && <span className="menu-badge" title={ALERT_TIP.activity(alerts.activity)}>{alerts.activity > 9 ? '9+' : alerts.activity}</span>}
+                  </Link>
+                ))}
+                <hr />
+                <button onClick={toggle}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button><button onClick={signOut}><LogOut size={16} /> Log out</button>
+              </div>}
             </div>
           </header>
           <div className="body">
@@ -143,7 +153,7 @@ export default function Layout() {
               <aside className="events-panel idea-side"><h2>Chat <span className="h-ico"><MessageCircle size={26} strokeWidth={2.2} /></span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
             ) : <EventsPanel />}
           </div>
-          <Dock toggleChat={() => setChatOpen((v) => !v)} />
+          <Dock />
         </div>
         <ChatBox open={chatOpen} setOpen={setChatOpen} />
         <CallPanel />

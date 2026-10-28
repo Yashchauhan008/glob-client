@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Lightbulb, Trash2 } from 'lucide-react'
+import { ArrowLeft, Lightbulb, Maximize2, Minimize2, Trash2 } from 'lucide-react'
 import { api, ApiError } from '../api'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
@@ -24,6 +24,23 @@ export default function Board() {
   const [title, setTitle] = useState('')
   const [ideaId, setIdeaId] = useState('')
   const [peers, setPeers] = useState<Peer[]>([])
+  const page = useRef<HTMLDivElement>(null)
+  const [full, setFull] = useState(false) // the browser's real full screen
+  const [wide, setWide] = useState(false) // fallback where the browser has none (iPhone): the board covers the app
+
+  useEffect(() => {
+    const sync = () => setFull(document.fullscreenElement === page.current)
+    document.addEventListener('fullscreenchange', sync)
+    return () => { document.removeEventListener('fullscreenchange', sync); if (document.fullscreenElement === page.current) void document.exitFullscreen() }
+  }, [])
+
+  const toggleFull = useCallback(() => {
+    if (document.fullscreenElement) { void document.exitFullscreen(); return }
+    if (wide) { setWide(false); return }
+    const el = page.current
+    if (el?.requestFullscreen) el.requestFullscreen().catch(() => setWide(true))
+    else setWide(true)
+  }, [wide])
 
   const board = useQuery({
     queryKey: ['board', id], queryFn: () => api.get<BoardFull>(`/boards/${id}`),
@@ -63,7 +80,7 @@ export default function Board() {
   const others = peers.filter((p) => p.user_id !== user?.id)
 
   return (
-    <div className="board-page">
+    <div ref={page} className={'board-page' + (wide ? ' cover' : '')}>
       <div className="board-bar">
         <Link to="/boards" className="bb-back" title="All boards"><ArrowLeft size={18} /></Link>
         <input
@@ -85,6 +102,9 @@ export default function Board() {
           {others.length > 5 && <i className="more">+{others.length - 5}</i>}
           <small>{others.length ? `${others.length + 1} here` : 'Just you'}</small>
         </span>
+        <button className="bb-del bb-neutral" title={full || wide ? 'Exit full screen' : 'Full screen'} onClick={toggleFull}>
+          {full || wide ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
         {b.owner_id === user?.id && (
           <button className="bb-del" title="Delete board" onClick={() => { if (confirm(`Delete "${b.title}" for everyone? This cannot be undone.`)) del.mutate() }}><Trash2 size={16} /></button>
         )}

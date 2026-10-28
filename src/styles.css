@@ -1029,3 +1029,17 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .board-canvas { flex: 1; min-height: 0; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); position: relative; }
 .board-canvas .excalidraw { height: 100%; --ui-font: 'Manrope', system-ui, sans-serif; }
 @media (max-width: 760px) { .main.board-mode { padding: 10px 8px 90px; } .bb-title { font-size: 17px; } .bb-idea select { max-width: 150px; } }
+
+/* board full screen: the real one, or a cover-the-app fallback for browsers without it */
+.board-page:fullscreen { background: var(--paper); padding: 12px 14px; height: 100%; }
+.board-page.cover { position: fixed; inset: 0; z-index: 45; background: var(--paper); padding: 12px 14px; }
+.bb-peers + .bb-del { margin-left: 8px; } .bb-neutral:hover { color: var(--text, var(--ink)); }
+
+/* profile menu: Team and Activity live here now */
+.menu a { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 10px; color: var(--ink); font-weight: 600; text-decoration: none; position: relative; }
+.menu a:hover, .menu a.on { background: var(--side); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+.menu-badge { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #e5483b; color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.user { position: relative; } .user-dot { position: absolute; top: 4px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: #e5483b; border: 2px solid var(--ink); }
+[data-theme='dark'] .menu a { color: var(--text); } [data-theme='dark'] .menu a:hover, [data-theme='dark'] .menu a.on { background: #2e2e34; }
+.menu { min-width: 190px; }
