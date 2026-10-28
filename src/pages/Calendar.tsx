@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { api } from '../api'
 import { addDays, sameDay, useAgenda, weekStart } from '../agenda'
 import { AgendaCard } from '../components/EventsPanel'
@@ -21,7 +21,7 @@ export default function Calendar() {
   return (
     <>
       <div className="page-head">
-        <h1>Timetable <span>🗓️</span></h1>
+        <h1>Timetable <span className="h-ico"><CalendarDays size={34} strokeWidth={2.2} /></span></h1>
         <div className="actions">
           <div className="seg">
             <button onClick={() => setStart(addDays(start, -7))}><ChevronLeft size={16} /></button>

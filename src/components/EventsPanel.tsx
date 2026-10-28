@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, CalendarClock, CheckCircle2, Users } from 'lucide-react'
+import { Bell, CalendarClock, CalendarDays, CheckCircle2, Users } from 'lucide-react'
 import { api } from '../api'
 import { addDays, fmtDay, fmtTime, startOfDay, useAgenda, type AgendaItem } from '../agenda'
 import { KIND_COLOR } from '../types'
@@ -34,7 +34,7 @@ export default function EventsPanel() {
   const del = useMutation({ mutationFn: (id: string) => api.del(`/events/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ['agenda'] }) })
   return (
     <aside className="events-panel">
-      <h2>My Events <span>🗓️</span></h2>
+      <h2>My Events <span className="h-ico"><CalendarDays size={26} strokeWidth={2.2} /></span></h2>
       <div className="ev-list">
         {data?.map((it) => <AgendaCard key={it.key} it={it} onDelete={it.type === 'event' ? () => del.mutate(it.id) : undefined} />)}
         <button className="ev-add" onClick={() => quick('event')}>+ Add event or appointment</button>

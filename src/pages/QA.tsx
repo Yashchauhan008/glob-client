@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
+import { Check, CircleCheck, HelpCircle } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { Empty } from '../components/ui'
@@ -33,7 +33,7 @@ function Question({ q }: { q: Q }) {
     <div className={'qcard' + (solved ? ' solved' : '')}>
       <button className="qhead" onClick={() => setOpen(!open)}>
         <div><h3>{q.title}</h3><small>{q.owner_name} · {new Date(q.created_at).toLocaleDateString()}{q.idea_title ? ` · on “${q.idea_title}”` : ''}</small></div>
-        <span className="chip">{solved ? '✅ answered' : `${q.answers_count} answer${q.answers_count === 1 ? '' : 's'}`}</span>
+        <span className="chip">{solved ? <><CircleCheck size={13} className="ico" /> answered</> : `${q.answers_count} answer${q.answers_count === 1 ? '' : 's'}`}</span>
       </button>
       {open && (
         <div className="qbody">
@@ -64,7 +64,7 @@ export default function QA() {
   const open = items.filter((q) => !q.accepted_answer_id).length
   return (
     <>
-      <div className="page-head"><h1>Questions <span>🙋</span></h1><button className="btn" onClick={() => quick('question')}>+ Ask the team</button></div>
+      <div className="page-head"><h1>Questions <span className="h-ico"><HelpCircle size={34} strokeWidth={2.2} /></span></h1><button className="btn" onClick={() => quick('question')}>+ Ask the team</button></div>
       <div className="stats">
         <div className="stat" style={{ '--c': '#d3e9f8' } as React.CSSProperties}><b>{items.length}</b><span>Asked</span></div>
         <div className="stat" style={{ '--c': '#e6d3f8' } as React.CSSProperties}><b>{open}</b><span>Still open</span></div>

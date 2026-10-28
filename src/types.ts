@@ -1,4 +1,5 @@
-export type User = { id: string; name: string; email: string }
+export type User = { id: string; name: string; email: string; avatar_url?: string | null }
+export type TeamMember = User & { created_at: string; ideas: number; tasks_done: number; last_active: string | null }
 
 export const IDEA_STATUSES = ['idea', 'planning', 'building', 'paused', 'dropped', 'shipped'] as const
 export const STAGES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const

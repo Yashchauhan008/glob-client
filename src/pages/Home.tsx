@@ -6,6 +6,7 @@ import { PRODUCT_COLOR, STAGES, STAGE_COLOR, type Idea, type Lead } from '../typ
 import { Pill, fmtDate, fmtDateTime } from '../components/ui'
 import { LeadMap } from '../components/maps'
 import { colorFor, initials, usePresence } from '../presence'
+import { Hand } from 'lucide-react'
 
 type Dash = {
   team: { ideas: number; notes: number; votes: number; questions: number; open_questions: number; answers: number; messages: number; upcoming_events: number; feasibility: number | null; todos_done: number; todos_total: number }
@@ -37,7 +38,7 @@ export default function Home() {
 
   return (
     <>
-      <div className="page-head"><h1>Hi {user!.name.split(' ')[0]}, here’s the team <span>👋</span></h1></div>
+      <div className="page-head"><h1>Hi {user!.name.split(' ')[0]}, here’s the team <span className="h-ico"><Hand size={34} strokeWidth={2.2} /></span></h1></div>
 
       <div className="stats big">
         <div className="stat" style={tile('#d3e9f8')}><b>{t.ideas}</b><span>Ideas</span></div>

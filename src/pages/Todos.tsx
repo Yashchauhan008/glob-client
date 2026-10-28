@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { Idea, Lead, Product, Todo } from '../types'
 import { CsvTools, Empty, Header, fmtDate, fmtDateTime } from '../components/ui'
+import { Lightbulb, Package, User } from 'lucide-react'
 
 type Res = { items: Todo[]; follow_ups: { lead_id: string; lead_name: string; next_follow_up_at: string }[] }
 
@@ -64,9 +65,9 @@ export default function Todos() {
             <div className="grow">
               <span>{t.title}</span>
               <small>
-                {t.idea_title && <Link to={`/ideas/${t.idea_id}`}>💡 {t.idea_title}</Link>}
-                {t.product_name && <span>📦 {t.product_name}</span>}
-                {t.lead_name && <Link to={`/leads/${t.lead_id}`}>👤 {t.lead_name}</Link>}
+                {t.idea_title && <Link to={`/ideas/${t.idea_id}`}><Lightbulb size={13} className="ico" /> {t.idea_title}</Link>}
+                {t.product_name && <span><Package size={13} className="ico" /> {t.product_name}</span>}
+                {t.lead_name && <Link to={`/leads/${t.lead_id}`}><User size={13} className="ico" /> {t.lead_name}</Link>}
               </small>
             </div>
             {t.due_date && <span className={'due' + (!t.done && t.due_date < today ? ' late' : '')}>{fmtDate(t.due_date)}</span>}

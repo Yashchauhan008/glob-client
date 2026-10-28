@@ -11,6 +11,7 @@ import IdeaDetail from './pages/IdeaDetail'
 import Products from './pages/Products'
 import Todos from './pages/Todos'
 import Activity from './pages/Activity'
+import Team from './pages/Team'
 import Leads from './pages/Leads'
 import LeadDetail from './pages/LeadDetail'
 
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/ideas/:id" element={<IdeaDetail />} />
           <Route path="/activity" element={<Activity />} />
+          <Route path="/team" element={<Team />} />
           <Route path="/products" element={<Products />} />
           <Route path="/tasks" element={<Todos />} />
           <Route path="/leads" element={<Leads />} />

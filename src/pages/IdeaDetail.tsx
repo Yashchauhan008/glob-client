@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, CheckSquare, HelpCircle, Pencil, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckSquare, CircleCheck, HelpCircle, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea } from '../types'
@@ -61,7 +61,7 @@ export default function IdeaDetail() {
           <div className="hero-meta">
             <select value={data.status} onChange={(e) => patch.mutate({ status: e.target.value })}>{IDEA_STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
             <span className="chip">started by {data.owner_name}</span>
-            <span className="chip">💭 {data.thoughts} thoughts</span>
+            <span className="chip"><MessageCircle size={13} className="ico" /> {data.thoughts} thoughts</span>
             <Avatars names={data.contributors} />
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function IdeaDetail() {
             <button style={{ background: KIND_COLOR.task }} onClick={() => quick('todo', { idea_id: id })}><CheckSquare size={15} /> Task</button>
             <button style={{ background: KIND_COLOR.appointment }} onClick={() => quick('event', { idea_id: id })}><CalendarDays size={15} /> Event</button>
           </div>
-          {relQ.map((q) => <Link key={q.id} to="/qa" className="row-link"><HelpCircle size={15} /><span>{q.title}</span><small>{q.accepted_answer_id ? '✅ answered' : `${q.answers_count} answers`}</small></Link>)}
+          {relQ.map((q) => <Link key={q.id} to="/qa" className="row-link"><HelpCircle size={15} /><span>{q.title}</span><small>{q.accepted_answer_id ? <><CircleCheck size={12} className="ico" /> answered</> : `${q.answers_count} answers`}</small></Link>)}
           {relE.map((e) => <Link key={e.id} to="/calendar" className="row-link"><CalendarDays size={15} /><span>{e.title}</span><small>{new Date(e.starts_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></Link>)}
           {!relQ.length && !relE.length && <p className="muted">No questions or events linked yet. Tasks live in the To-dos list below.</p>}
         </section>

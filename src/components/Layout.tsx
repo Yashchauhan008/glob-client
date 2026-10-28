@@ -1,16 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
-import { CONTENT_ID, colorFor, initials, usePresence } from '../presence'
+import { CONTENT_ID, colorFor, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
 import EventsPanel from './EventsPanel'
 import Discussion from './Discussion'
 import { useMedia } from '../media'
 import ChatBox from './ChatBox'
+import { Face } from './Avatar'
 import { QuickProvider, useQuick } from './quick'
 import { VoiceProvider } from '../voice'
 import CallPanel from './CallPanel'
@@ -24,6 +25,7 @@ const NAV = [
   { to: '/leads', label: 'CRM', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/activity', label: 'Activity', icon: History },
+  { to: '/team', label: 'Team', icon: UserRound },
 ]
 
 function Dock({ toggleChat }: { toggleChat: () => void }) {
@@ -107,7 +109,7 @@ export default function Layout() {
                       return n > 0 ? <span key={n} className={'nav-badge ' + k} title={ALERT_TIP[k](n)} aria-label={ALERT_TIP[k](n)}>{n > 9 ? '9+' : n}</span> : null
                     })()}
                     <span className="nav-presence">
-                      {unique.map((r) => <span key={r.user_id} className="nav-dot" title={`${r.name} is here`} style={{ background: colorFor(r.user_id) }}>{initials(r.name)}</span>)}
+                      {unique.map((r) => <span key={r.user_id} className="nav-dot" title={`${r.name} is here`} style={{ background: colorFor(r.user_id) }}><Face id={r.user_id} name={r.name} /></span>)}
                     </span>
                   </NavLink>
                 )
@@ -116,13 +118,13 @@ export default function Layout() {
             <button className="nav-toggle" aria-label="Menu" onClick={() => setNavOpen((v) => !v)}>{navOpen ? <X size={22} /> : <Menu size={22} />}</button>
             <div className="who">
               <div className="live" title="Online now">
-                {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}>{initials(o.name)}</i>)}
+                {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}><Face id={o.user_id} name={o.name} /></i>)}
               </div>
               <button className="theme-btn" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               <button className="user" onClick={() => setMenu(!menu)}>
-                <i className="me-av" style={{ background: colorFor(user!.id) }}>{initials(user!.name)}</i>
+                <i className="me-av" style={{ background: colorFor(user!.id) }}><Face id={user!.id} name={user!.name} /></i>
                 <span><b>{user!.name}</b><small>{user!.email}</small></span><ChevronDown size={16} />
               </button>
               {menu && <div className="menu"><button onClick={toggle}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button><button onClick={signOut}><LogOut size={16} /> Log out</button></div>}
@@ -136,7 +138,7 @@ export default function Layout() {
               </div>
             </main>
             {ideaMatch && wide ? (
-              <aside className="events-panel idea-side"><h2>Chat <span>💬</span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
+              <aside className="events-panel idea-side"><h2>Chat <span className="h-ico"><MessageCircle size={26} strokeWidth={2.2} /></span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
             ) : <EventsPanel />}
           </div>
           <Dock toggleChat={() => setChatOpen((v) => !v)} />

@@ -2,7 +2,8 @@ import { memo, useEffect, useRef, useState } from 'react'
 import { Maximize2, Minimize2, Minus, Mic, MicOff, MonitorOff, MonitorUp, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
 import { Track, type Participant } from 'livekit-client'
 import { useVoice } from '../voice'
-import { colorFor, initials } from '../presence'
+import { colorFor } from '../presence'
+import { Face } from './Avatar'
 
 const clock = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -24,7 +25,7 @@ function useElapsed(since: number | null) {
 function Person({ id, name, talking }: { id: string; name: string; talking: boolean }) {
   return (
     <span className={'cp-av' + (talking ? ' talking' : '')} title={name}>
-      <i style={{ background: colorFor(id) }}>{initials(name)}</i>
+      <i style={{ background: colorFor(id) }}><Face id={id} name={name} /></i>
       {talking && <em className="wave"><b /><b /><b /><b /></em>}
     </span>
   )
@@ -111,7 +112,7 @@ const PersonTile = memo(function PersonTile({ p, talking, micOn, tick }: { p: Pa
   const muted = !(p.isLocal ? micOn : p.isMicrophoneEnabled)
   return (
     <div className={'vp-tile' + (talking ? ' talking' : '')}>
-      {track ? <video ref={ref} autoPlay playsInline muted /> : <i className="vp-av" style={{ background: colorFor(p.identity) }}>{initials(p.name || '?')}</i>}
+      {track ? <video ref={ref} autoPlay playsInline muted /> : <i className="vp-av" style={{ background: colorFor(p.identity) }}><Face id={p.identity} name={p.name || '?'} /></i>}
       <span>{p.isLocal ? 'You' : p.name}{muted && <MicOff size={11} />}</span>
     </div>
   )

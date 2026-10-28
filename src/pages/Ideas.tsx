@@ -2,7 +2,7 @@ import { fileUrl, plain } from '../files'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
+import { CircleCheck, LayoutGrid, Lightbulb, List, MessageCircle, Paperclip, PartyPopper, Search, TriangleAlert, Waypoints } from 'lucide-react'
 import { api } from '../api'
 import { IDEA_COLOR, type Idea } from '../types'
 import { CsvTools, Empty, Pill } from '../components/ui'
@@ -22,7 +22,7 @@ export default function Ideas() {
   return (
     <>
       <div className="page-head">
-        <h1>Team Ideas <span>💡</span></h1>
+        <h1>Team Ideas <span className="h-ico"><Lightbulb size={34} strokeWidth={2.2} /></span></h1>
         <label className="search"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ideas" /></label>
       </div>
 
@@ -35,7 +35,7 @@ export default function Ideas() {
         <div className="grow">
           <div className="stats">
             <div className="stat" style={{ '--c': '#d3e9f8' } as React.CSSProperties}><b>{items.length}</b><span>Total</span></div>
-            <div className="stat" style={{ '--c': '#d3f2cc' } as React.CSSProperties}><b>{shipped}</b><span>Shipped 🎉</span></div>
+            <div className="stat" style={{ '--c': '#d3f2cc' } as React.CSSProperties}><b>{shipped}</b><span>Shipped <PartyPopper size={14} className="ico" /></span></div>
             <div className="stat dashed"><b>{thinking}</b><span>Being thought</span></div>
             <div className="stat-actions"><CsvTools entity="ideas" importable invalidate={['ideas']} /><button className="btn" onClick={() => quick('idea')}>+ New idea</button></div>
           </div>
@@ -50,10 +50,10 @@ export default function Ideas() {
                 <Meter value={i.feasibility} votes={i.votes} />
                 <div className="idea-foot">
                   <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
-                  <span className="chip">💭 {i.thoughts}</span>
-                  {!!i.problems && <span className="chip">⚠️ {i.problems}</span>}
-                  {!!i.conclusions && <span className="chip">✅ {i.conclusions}</span>}
-                  {!!i.attachments && <span className="chip">📎 {i.attachments}</span>}
+                  <span className="chip"><MessageCircle size={13} className="ico" /> {i.thoughts}</span>
+                  {!!i.problems && <span className="chip"><TriangleAlert size={13} className="ico" /> {i.problems}</span>}
+                  {!!i.conclusions && <span className="chip"><CircleCheck size={13} className="ico" /> {i.conclusions}</span>}
+                  {!!i.attachments && <span className="chip"><Paperclip size={13} className="ico" /> {i.attachments}</span>}
                   <Avatars names={i.contributors} />
                 </div>
               </Link>

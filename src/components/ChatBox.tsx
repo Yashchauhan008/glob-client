@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Maximize2, Minimize2, Send, X } from 'lucide-react'
+import { ChevronDown, Hand, Maximize2, Minimize2, Send, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { colorFor, initials, usePresence } from '../presence'
@@ -142,7 +142,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
         </div>
       </div>
       <div className="chat-msgs">
-        {!all.length && <p className="muted">Say hi 👋 — everyone online sees this.</p>}
+        {!all.length && <p className="muted">Say hi <Hand size={14} className="ico" /> — everyone online sees this.</p>}
         {groups.map((g) => {
           const mine = g.user_id === user?.id
           return (
