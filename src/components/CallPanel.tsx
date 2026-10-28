@@ -102,24 +102,22 @@ const Tile = memo(function Tile({ p, source, talking, tick }: { p: Participant; 
   return (
     <div className={'vp-tile' + (source === 'screen' ? ' screen' : '') + (talking ? ' talking' : '')}>
       <video ref={ref} autoPlay playsInline muted />
-      <span>{source === 'screen' ? `${who}'s screen` : who}</span>
+      <span>{source === 'screen' ? p.isLocal ? 'Your screen' : `${who}'s screen` : who}</span>
     </div>
   )
 })
 
-/** Only exists while a camera or someone else's screen is on. Drag it, snap it to a corner, or take it full screen. */
+/** Only exists while a camera or a screen share is on. Drag it, snap it to a corner, or take it full screen. */
 function VideoPopup() {
   const v = useVoice()
   const [full, setFull] = useState(false)
-  const [mini, setMini] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<{ dx: number; dy: number } | null>(null)
 
-  // your own screen is not shown back to you (it would mirror itself endlessly)
   const tiles: { p: Participant; source: Source }[] = v.participants.flatMap((p) => [
     ...(p.isCameraEnabled ? [{ p, source: 'camera' as const }] : []),
-    ...(p.isScreenShareEnabled && !p.isLocal ? [{ p, source: 'screen' as const }] : []),
+    ...(p.isScreenShareEnabled ? [{ p, source: 'screen' as const }] : []),
   ]).sort((a, b) => Number(b.source === 'screen') - Number(a.source === 'screen'))
   if (v.status !== 'connected' || !tiles.length) return null
   const hasScreen = tiles.some((t) => t.source === 'screen')
@@ -145,15 +143,14 @@ function VideoPopup() {
 
   const style = full || !pos ? undefined : { left: pos.x, top: pos.y, bottom: 'auto' }
   return (
-    <div ref={box} className={'vpop' + (full ? ' full' : '') + (mini ? ' mini' : '') + (hasScreen ? ' has-screen' : '')} style={style}>
+    <div ref={box} className={'vpop' + (full ? ' full' : '') + (hasScreen ? ' has-screen' : '')} style={style}>
       <div className="vp-head" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
         <b>{hasScreen ? <MonitorUp size={14} /> : <Video size={14} />} {hasScreen ? 'Screen share' : `Video · ${tiles.length}`}</b>
         <span>
-          <button title={mini ? 'Expand' : 'Minimise'} onClick={() => setMini(!mini)}>{mini ? <Maximize2 size={14} /> : <Minimize2 size={14} />}</button>
-          <button title={full ? 'Back to corner' : 'Full screen'} onClick={() => { setFull(!full); setMini(false) }}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
+          <button title={full ? 'Exit full screen' : 'Full screen'} onClick={() => setFull(!full)}>{full ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
         </span>
       </div>
-      {!mini && <div className="vp-grid">{tiles.map(({ p, source }) => <Tile key={p.identity + source} p={p} source={source} talking={v.speaking.has(p.identity)} tick={v.tick} />)}</div>}
+      <div className="vp-grid">{tiles.map(({ p, source }) => <Tile key={p.identity + source} p={p} source={source} talking={v.speaking.has(p.identity)} tick={v.tick} />)}</div>
     </div>
   )
 }
