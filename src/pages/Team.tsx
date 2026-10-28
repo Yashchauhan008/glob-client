@@ -5,6 +5,7 @@ import { api, uploadAvatar } from '../api'
 import { useAuth } from '../auth'
 import { Empty, Header } from '../components/ui'
 import { Face, useTeam } from '../components/Avatar'
+import AvatarCropper from '../components/AvatarCropper'
 import { colorFor, usePresence } from '../presence'
 import type { TeamMember } from '../types'
 
@@ -24,6 +25,7 @@ function Card({ m, mine, online }: { m: TeamMember; mine: boolean; online: boole
   const [name, setName] = useState(m.name)
   const [err, setErr] = useState('')
   const file = useRef<HTMLInputElement>(null)
+  const [cropping, setCropping] = useState<File | null>(null)
 
   const done = (r: { name: string; avatar_url: string | null }) => {
     updateUser({ name: r.name, avatar_url: r.avatar_url }); qc.invalidateQueries({ queryKey: ['team'] }); setEditing(false); setErr('')
@@ -36,10 +38,11 @@ function Card({ m, mine, online }: { m: TeamMember; mine: boolean; online: boole
   const upload = useMutation({ mutationFn: uploadAvatar, onSuccess: done, onError: (e: Error) => setErr(e.message) })
   const busy = save.isPending || upload.isPending
 
-  const pick = (f: File | undefined) => { if (f) { setErr(''); upload.mutate(f) } }
+  const pick = (f: File | undefined) => { if (f) { setErr(''); setCropping(f) } }
 
   return (
     <div className={'team-card' + (mine ? ' mine' : '')}>
+      {cropping && <AvatarCropper file={cropping} onCancel={() => setCropping(null)} onSave={(f) => { setCropping(null); upload.mutate(f) }} />}
       <div className="tc-avatar">
         <i style={{ background: colorFor(m.id) }}><Face id={m.id} name={m.name} /></i>
         {online && <b className="tc-online" title="Online now" />}

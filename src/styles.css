@@ -988,3 +988,15 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .h-ico { display: inline-flex; vertical-align: middle; margin-left: 4px; opacity: .9; }
 .ico { display: inline-block; vertical-align: -2px; flex: none; }
 .chip > .ico { margin-right: 3px; }
+
+/* avatar crop window */
+.crop-view { position: relative; align-self: center; border-radius: 50%; overflow: hidden; background: #111; cursor: grab; touch-action: none; user-select: none; box-shadow: 0 0 0 3px var(--surface, #fff), 0 0 0 5px var(--ink); }
+.crop-view:active { cursor: grabbing; }
+.crop-view img { position: absolute; left: 50%; top: 50%; max-width: none; pointer-events: none; will-change: transform; }
+.crop-hint { text-align: center; }
+.crop-zoom { display: flex; align-items: center; gap: 10px; }
+.crop-zoom input[type=range] { flex: 1; padding: 0; border: 0; background: transparent; accent-color: var(--ink); }
+[data-theme='dark'] .crop-zoom input[type=range] { accent-color: #cfc3fb; }
+.crop-zoom button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--side); color: var(--text, var(--ink)); display: grid; place-items: center; cursor: pointer; }
+.crop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+[data-theme='dark'] .crop-view { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px #cfc3fb; }
