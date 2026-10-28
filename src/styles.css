@@ -978,7 +978,7 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .tc-edit input { flex: 1; min-width: 0; text-align: center; font-weight: 700; padding: 8px 12px; border-radius: 999px; }
 .tc-edit button { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 0; background: var(--side); color: var(--fg); display: grid; place-items: center; cursor: pointer; }
 .tc-edit button.ok { background: #bff0b6; color: #0c0c0d; } .tc-edit button:disabled { opacity: .5; }
-.tc-stats { display: flex; gap: 6px; width: 100%; margin-top: 12px; }
+.tc-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; margin-top: 12px; }
 .tc-stats span { flex: 1; background: var(--side); border-radius: 14px; padding: 8px 4px; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .tc-stats b { font-size: 16px; color: var(--fg); font-weight: 800; }
 .tc-joined { color: var(--muted); font-size: 11.5px; margin-top: 8px; }

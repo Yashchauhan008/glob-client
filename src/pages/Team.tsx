@@ -9,6 +9,14 @@ import AvatarCropper from '../components/AvatarCropper'
 import { colorFor, usePresence } from '../presence'
 import type { Invite, TeamMember } from '../types'
 
+/** Total time Glob has been open: 45m, 3h 20m, 2d 5h. */
+const liveTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60), h = Math.floor(m / 60), d = Math.floor(h / 24)
+  if (d) return `${d}d ${h % 24}h`
+  if (h) return `${h}h ${m % 60}m`
+  return `${m}m`
+}
+
 const ago = (s: string | null) => {
   if (!s) return 'never'
   const m = Math.floor((Date.now() - new Date(s).getTime()) / 60000)
@@ -21,6 +29,7 @@ const ago = (s: string | null) => {
 function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online: boolean; admin: boolean }) {
   const qc = useQueryClient()
   const { updateUser } = useAuth()
+  const canEdit = mine || admin // the admin can change anyone's name and picture
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(m.name)
   const [err, setErr] = useState('')
@@ -35,14 +44,15 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
   const adminBusy = block.isPending || unblock.isPending || remove.isPending
 
   const done = (r: { name: string; avatar_url: string | null }) => {
-    updateUser({ name: r.name, avatar_url: r.avatar_url }); qc.invalidateQueries({ queryKey: ['team'] }); setEditing(false); setErr('')
+    if (mine) updateUser({ name: r.name, avatar_url: r.avatar_url })
+    qc.invalidateQueries({ queryKey: ['team'] }); setEditing(false); setErr('')
   }
   const save = useMutation({
-    mutationFn: (body: { name?: string; remove_avatar?: boolean }) => api.patch<{ name: string; avatar_url: string | null }>('/team/me', body),
+    mutationFn: (body: { name?: string; remove_avatar?: boolean }) => api.patch<{ name: string; avatar_url: string | null }>(`/team/${m.id}`, body),
     onSuccess: done,
     onError: (e: Error) => setErr(e.message),
   })
-  const upload = useMutation({ mutationFn: uploadAvatar, onSuccess: done, onError: (e: Error) => setErr(e.message) })
+  const upload = useMutation({ mutationFn: (f: File) => uploadAvatar(f, m.id), onSuccess: done, onError: (e: Error) => setErr(e.message) })
   const busy = save.isPending || upload.isPending
 
   const pick = (f: File | undefined) => { if (f) { setErr(''); setCropping(f) } }
@@ -53,7 +63,7 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
       <div className="tc-avatar">
         <i style={{ background: colorFor(m.id) }}><Face id={m.id} name={m.name} /></i>
         {online && <b className="tc-online" title="Online now" />}
-        {mine && (
+        {canEdit && (
           <button className="tc-cam" title="Change picture" disabled={busy} onClick={() => file.current?.click()}><Camera size={15} /></button>
         )}
         <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
@@ -61,12 +71,12 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
 
       {editing ? (
         <form className="tc-edit" onSubmit={(e) => { e.preventDefault(); if (name.trim()) save.mutate({ name: name.trim() }) }}>
-          <input autoFocus value={name} maxLength={80} onChange={(e) => setName(e.target.value)} aria-label="Your name" />
+          <input autoFocus value={name} maxLength={80} onChange={(e) => setName(e.target.value)} aria-label={mine ? 'Your name' : `${m.name}'s name`} />
           <button type="submit" className="ok" title="Save" disabled={busy || !name.trim()}><Check size={16} /></button>
           <button type="button" title="Cancel" onClick={() => { setEditing(false); setName(m.name); setErr('') }}><X size={16} /></button>
         </form>
       ) : (
-        <h3>{m.name}{mine && <span className="tc-you">you</span>}{m.is_root && <span className="tc-you tc-admin"><ShieldCheck size={11} /> admin</span>}{m.status === 'blocked' && <span className="tc-you tc-blocked">blocked</span>}{m.status === 'not_invited' && <span className="tc-you tc-blocked">not invited</span>}{mine && <button className="tc-pen" title="Edit name" onClick={() => setEditing(true)}><Pencil size={14} /></button>}</h3>
+        <h3>{m.name}{mine && <span className="tc-you">you</span>}{m.is_root && <span className="tc-you tc-admin"><ShieldCheck size={11} /> admin</span>}{m.status === 'blocked' && <span className="tc-you tc-blocked">blocked</span>}{m.status === 'not_invited' && <span className="tc-you tc-blocked">not invited</span>}{canEdit && <button className="tc-pen" title="Edit name" onClick={() => setEditing(true)}><Pencil size={14} /></button>}</h3>
       )}
       <p className="tc-mail">{m.email}</p>
       {err && <p className="tc-err">{err}</p>}
@@ -75,6 +85,7 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
         <span><b>{m.ideas}</b>ideas</span>
         <span><b>{m.tasks_done}</b>tasks done</span>
         <span><b>{online ? 'now' : ago(m.last_active)}</b>active</span>
+        <span title="Total time spent on Glob"><b>{liveTime(m.live_seconds ?? 0)}</b>live time</span>
       </div>
       <small className="tc-joined">Joined {new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>
       {admin && !mine && !m.is_root && (
@@ -85,7 +96,7 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
           <button className="danger" disabled={adminBusy} onClick={() => { if (confirm(`Remove ${m.name} from Glob for good?\n\nTheir ideas, tasks, leads, boards and messages move to you. They are signed out and taken off the invite list.`)) remove.mutate() }}><Trash2 size={14} /> Remove</button>
         </div>
       )}
-      {mine && m.avatar_url && <button className="tc-remove" disabled={busy} onClick={() => save.mutate({ remove_avatar: true })}><Trash2 size={13} /> Remove picture</button>}
+      {canEdit && m.avatar_url && <button className="tc-remove" disabled={busy} onClick={() => save.mutate({ remove_avatar: true })}><Trash2 size={13} /> Remove picture</button>}
     </div>
   )
 }

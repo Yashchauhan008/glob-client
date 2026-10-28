@@ -1,6 +1,6 @@
 export type User = { id: string; name: string; email: string; avatar_url?: string | null }
 export type TeamMember = User & {
-  created_at: string; ideas: number; tasks_done: number; last_active: string | null
+  created_at: string; ideas: number; tasks_done: number; last_active: string | null; live_seconds: number
   status: 'active' | 'blocked' | 'not_invited'; is_root: boolean
 }
 export type Invite = { email: string; created_at: string; user_id: string | null; name: string | null; blocked: boolean; added_by: string | null }

@@ -65,12 +65,12 @@ export async function uploadImage(file: File): Promise<{ file_id: string; url: s
   return data
 }
 
-/** The server crops it to a small square and compresses it, so the original photo can be sent as is. */
-export async function uploadAvatar(file: File): Promise<{ id: string; name: string; email: string; avatar_url: string | null }> {
+/** The server crops it to a small square and compresses it, so the original photo can be sent as is. The admin can do this for anyone. */
+export async function uploadAvatar(file: File, userId = 'me'): Promise<{ id: string; name: string; email: string; avatar_url: string | null }> {
   const token = getToken()
   const body = new FormData()
   body.append('file', file)
-  const res = await fetch(API + '/team/me/avatar', { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const res = await fetch(`${API}/team/${userId}/avatar`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(data?.message || 'Upload failed', res.status)
   return data
