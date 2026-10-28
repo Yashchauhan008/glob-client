@@ -160,7 +160,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // hold Space to talk (ignored while typing in a field)
   useEffect(() => {
-    const down = (e: KeyboardEvent) => { if (e.code === 'Space' && !e.repeat && !typing(e.target) && roomRef.current) { e.preventDefault(); pttDown() } }
+    const down = (e: KeyboardEvent) => { if (e.code === 'Space' && !e.repeat && !typing(e.target) && roomRef.current && modeRef.current === 'ptt') { e.preventDefault(); pttDown() } }
     const up = (e: KeyboardEvent) => { if (e.code === 'Space' && roomRef.current && modeRef.current === 'ptt') pttUp() }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)

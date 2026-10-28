@@ -74,6 +74,25 @@ export async function uploadAvatar(file: File): Promise<{ id: string; name: stri
   return data
 }
 
+const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/bmp': 'bmp' }
+
+/** A picture dropped onto a whiteboard. The server stores it in S3 and tells everyone else on the board. */
+export async function uploadBoardImage(boardId: string, fileId: string, blob: Blob): Promise<void> {
+  const token = getToken()
+  const body = new FormData()
+  body.append('fileId', fileId)
+  body.append('file', blob, `${fileId.slice(0, 40)}.${EXT[blob.type] ?? 'png'}`)
+  const res = await fetch(`${API}/boards/${boardId}/images`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) throw new ApiError((await res.json().catch(() => ({})))?.message || 'Upload failed', res.status)
+}
+
+export async function uploadBoardThumb(boardId: string, blob: Blob): Promise<void> {
+  const token = getToken()
+  const body = new FormData()
+  body.append('file', blob, 'preview.webp')
+  await fetch(`${API}/boards/${boardId}/thumbnail`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+}
+
 export async function uploadThumbnail(attachmentId: string, file: File): Promise<void> {
   const token = getToken()
   const body = new FormData()

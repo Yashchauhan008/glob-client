@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, CheckSquare, CircleCheck, HelpCircle, MessageCircle, Pencil, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckSquare, CircleCheck, HelpCircle, MessageCircle, Pencil, Presentation, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type Idea } from '../types'
+import { IDEA_COLOR, IDEA_STATUSES, KIND_COLOR, type BoardSummary, type Idea } from '../types'
 import Avatars, { Meter } from '../components/Avatars'
 import { Modal } from '../components/ui'
 import { useQuick } from '../components/quick'
@@ -34,6 +34,11 @@ export default function IdeaDetail() {
   const events = useQuery({
     queryKey: ['events', 'all'],
     queryFn: () => api.get<{ items: Ev[] }>(`/events?from=${new Date(Date.now() - 30 * 864e5).toISOString()}&to=${new Date(Date.now() + 365 * 864e5).toISOString()}`),
+  })
+  const boards = useQuery({ queryKey: ['boards', 'idea', id], queryFn: () => api.get<{ items: BoardSummary[] }>(`/boards?idea_id=${id}`) })
+  const newBoard = useMutation({
+    mutationFn: () => api.post<{ id: string }>('/boards', { title: `${data?.title ?? 'Idea'} board`.slice(0, 200), idea_id: id }),
+    onSuccess: (r) => nav(`/boards/${r.id}`),
   })
   const refresh = () => { ['idea', 'ideas', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] })) }
   const patch = useMutation({ mutationFn: (b: object) => api.patch(`/ideas/${id}`, b), onSuccess: () => { refresh(); setEdit(false) } })
@@ -94,10 +99,12 @@ export default function IdeaDetail() {
             <button style={{ background: KIND_COLOR.meeting }} onClick={() => quick('question', { idea_id: id })}><HelpCircle size={15} /> Ask</button>
             <button style={{ background: KIND_COLOR.task }} onClick={() => quick('todo', { idea_id: id })}><CheckSquare size={15} /> Task</button>
             <button style={{ background: KIND_COLOR.appointment }} onClick={() => quick('event', { idea_id: id })}><CalendarDays size={15} /> Event</button>
+            <button style={{ background: '#cfc3fb' }} disabled={newBoard.isPending} onClick={() => newBoard.mutate()}><Presentation size={15} /> Board</button>
           </div>
+          {boards.data?.items.map((b) => <Link key={b.id} to={`/boards/${b.id}`} className="row-link"><Presentation size={15} /><span>{b.title}</span><small>{b.shapes} shapes</small></Link>)}
           {relQ.map((q) => <Link key={q.id} to="/qa" className="row-link"><HelpCircle size={15} /><span>{q.title}</span><small>{q.accepted_answer_id ? <><CircleCheck size={12} className="ico" /> answered</> : `${q.answers_count} answers`}</small></Link>)}
           {relE.map((e) => <Link key={e.id} to="/calendar" className="row-link"><CalendarDays size={15} /><span>{e.title}</span><small>{new Date(e.starts_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></Link>)}
-          {!relQ.length && !relE.length && <p className="muted">No questions or events linked yet. Tasks live in the To-dos list below.</p>}
+          {!relQ.length && !relE.length && !boards.data?.items.length && <p className="muted">No questions, events or boards linked yet. Tasks live in the To-dos list below.</p>}
         </section>
       </div>
 

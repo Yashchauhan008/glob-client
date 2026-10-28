@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Plus, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
@@ -24,6 +24,7 @@ const NAV = [
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/leads', label: 'CRM', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/boards', label: 'Boards', icon: Presentation },
   { to: '/activity', label: 'Activity', icon: History },
   { to: '/team', label: 'Team', icon: UserRound },
 ]
@@ -53,6 +54,7 @@ export default function Layout() {
   const { pathname } = useLocation()
   const alerts = useAlerts(pathname)
   const ideaMatch = matchPath('/ideas/:id', pathname)
+  const boardMatch = matchPath('/boards/:id', pathname) // the whiteboard needs the whole width
   const [chatOpen, setChatOpen] = useState(false)
   const [menu, setMenu] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
@@ -131,13 +133,13 @@ export default function Layout() {
             </div>
           </header>
           <div className="body">
-            <main className="main">
+            <main className={'main' + (boardMatch ? ' board-mode' : '')}>
               <div id={CONTENT_ID} className="content">
                 <Outlet />
-                <Cursors />
+                {!boardMatch && <Cursors />}
               </div>
             </main>
-            {ideaMatch && wide ? (
+            {boardMatch ? null : ideaMatch && wide ? (
               <aside className="events-panel idea-side"><h2>Chat <span className="h-ico"><MessageCircle size={26} strokeWidth={2.2} /></span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
             ) : <EventsPanel />}
           </div>

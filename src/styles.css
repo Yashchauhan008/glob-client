@@ -1000,3 +1000,32 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .crop-zoom button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--side); color: var(--text, var(--ink)); display: grid; place-items: center; cursor: pointer; }
 .crop-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 [data-theme='dark'] .crop-view { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px #cfc3fb; }
+
+/* boards: list */
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.board-card { --fg: var(--text, var(--ink)); display: flex; flex-direction: column; background: var(--surface, #fff); color: var(--fg); border-radius: var(--r); overflow: hidden; text-decoration: none; box-shadow: 0 0 0 1px var(--line); transition: transform .15s, box-shadow .15s; }
+.board-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px var(--line), 0 14px 30px rgba(0,0,0,.14); }
+.bc-thumb { aspect-ratio: 16 / 10; background: #f1f1ec; display: grid; place-items: center; color: var(--muted); border-bottom: 1px solid var(--line); }
+.bc-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
+[data-theme='dark'] .bc-thumb { background: #2a2a30; }
+.bc-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+.bc-body h3 { font-size: 17px; font-weight: 800; letter-spacing: -.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-meta { display: flex; gap: 6px; flex-wrap: wrap; } .bc-meta .chip { background: var(--side); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-body small { color: var(--muted); font-size: 12px; }
+
+/* boards: the editor takes the whole page, so the canvas is as big as it can be */
+.main.board-mode { padding: 14px 18px 96px; overflow: hidden; display: flex; flex-direction: column; }
+.main.board-mode .content { max-width: none; width: 100%; flex: 1; min-height: 0; margin: 0; }
+.board-page { height: 100%; display: flex; flex-direction: column; gap: 10px; min-height: 360px; }
+.board-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: none; }
+.bb-back { width: 38px; height: 38px; border-radius: 50%; background: var(--side); color: var(--text, var(--ink)); display: grid; place-items: center; flex: none; }
+.bb-title { flex: 1 1 200px; min-width: 120px; max-width: 420px; font-size: 20px; font-weight: 800; letter-spacing: -.4px; border-color: transparent; background: transparent; padding: 6px 12px; }
+.bb-title:hover { border-color: var(--line); } .bb-title:focus { background: var(--surface, #fff); }
+.bb-idea { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.bb-idea select { padding: 7px 12px; font-size: 13px; max-width: 220px; }
+.bb-peers { margin-left: auto; display: inline-flex; align-items: center; } .bb-peers small { margin-left: 8px; color: var(--muted); font-weight: 700; font-size: 12px; }
+.bb-peers i { width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 800; font-style: normal; color: #111; border: 2px solid var(--paper); margin-left: -8px; overflow: hidden; }
+.bb-del { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--side); color: var(--muted); display: grid; place-items: center; cursor: pointer; } .bb-del:hover { color: var(--red); }
+.board-canvas { flex: 1; min-height: 0; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); position: relative; }
+.board-canvas .excalidraw { height: 100%; --ui-font: 'Manrope', system-ui, sans-serif; }
+@media (max-width: 760px) { .main.board-mode { padding: 10px 8px 90px; } .bb-title { font-size: 17px; } .bb-idea select { max-width: 150px; } }

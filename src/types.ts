@@ -41,3 +41,10 @@ export const EVENT_KINDS = ['meeting', 'appointment', 'task', 'reminder'] as con
 export const KIND_COLOR: Record<string, string> = {
   meeting: '#d3e9f8', appointment: '#e6d3f8', task: '#fbe9b8', reminder: '#d3f2cc', followup: '#f9d2e4',
 }
+
+export type BoardSummary = {
+  id: string; title: string; idea_id: string | null; idea_title: string | null
+  owner_id: string; owner_name: string; thumb_url: string | null; shapes: number; created_at: string; updated_at: string
+}
+export type BoardImage = { url: string; file_id: string; mime: string }
+export type BoardFull = BoardSummary & { elements: Record<string, unknown>[]; images: Record<string, BoardImage> }
