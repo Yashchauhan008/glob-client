@@ -25,16 +25,16 @@ function othersOnline(roster: RosterEntry[], me?: string) {
   return map
 }
 
-function notifyCameOnline(userId: string, name: string) {
+function popup(title: string, body: string, tag: string) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
   try {
-    const n = new Notification(`${name} is online`, {
-      body: 'Just joined Glob',
-      icon: '/favicon-32.png',
-      tag: `glob-online-${userId}`,
-    })
+    const n = new Notification(title, { body, icon: '/favicon-32.png', tag })
     n.onclick = () => { window.focus(); n.close() }
   } catch { /* notification blocked */ }
+}
+
+function notifyCameOnline(userId: string, name: string) {
+  popup(`${name} is online`, 'Just joined Glob', `glob-online-${userId}`)
 }
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
@@ -44,7 +44,9 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null)
   const pathRef = useRef(pathname)
   const meRef = useRef(user?.id)
+  const meEmail = useRef(user?.email?.toLowerCase())
   meRef.current = user?.id
+  meEmail.current = user?.email?.toLowerCase()
   // null until the first roster arrives, so people already online are not announced
   const seenOnline = useRef<Set<string> | null>(null)
   const [roster, setRoster] = useState<RosterEntry[]>([])
@@ -76,6 +78,14 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       setCursors((prev) => ({ ...prev, [c.user_id]: { ...c, ts: Date.now() } })))
     socket.on('presence:leave', ({ user_id }: { user_id: string }) =>
       setCursors((prev) => { const n = { ...prev }; delete n[user_id]; return n }))
+    socket.on('team:invited', (p: { emails?: string[]; invitedBy?: string; invitedById?: string }) => {
+      if (!p || p.invitedById === meRef.current) return
+      const by = p.invitedBy || 'Someone'
+      for (const email of p.emails ?? []) {
+        const you = email.toLowerCase() === meEmail.current
+        popup(you ? `${by} invited you` : `${by} invited ${email}`, you ? 'You can sign in to Glob' : 'They can join Glob', `glob-invite-${email}`)
+      }
+    })
     return () => { seenOnline.current = null; socket.disconnect(); socketRef.current = null; setSocket(null); setRoster([]); setCursors({}) }
   }, [token])
 
