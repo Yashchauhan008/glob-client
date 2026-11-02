@@ -19,12 +19,34 @@ export const initials = (name: string) =>
 const Ctx = createContext<{ roster: RosterEntry[]; cursors: Cursor[]; socket: Socket | null }>({ roster: [], cursors: [], socket: null })
 export const usePresence = () => useContext(Ctx)
 
+function othersOnline(roster: RosterEntry[], me?: string) {
+  const map = new Map<string, string>()
+  for (const r of roster) if (r.user_id && r.user_id !== me && r.name) map.set(r.user_id, r.name)
+  return map
+}
+
+function notifyCameOnline(userId: string, name: string) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+  try {
+    const n = new Notification(`${name} is online`, {
+      body: 'Just joined Glob',
+      icon: '/favicon-32.png',
+      tag: `glob-online-${userId}`,
+    })
+    n.onclick = () => { window.focus(); n.close() }
+  } catch { /* notification blocked */ }
+}
+
 export function PresenceProvider({ children }: { children: ReactNode }) {
   const { token, user } = useAuth()
   const { pathname } = useLocation()
   const socketRef = useRef<Socket | null>(null)
   const [socket, setSocket] = useState<Socket | null>(null)
   const pathRef = useRef(pathname)
+  const meRef = useRef(user?.id)
+  meRef.current = user?.id
+  // null until the first roster arrives, so people already online are not announced
+  const seenOnline = useRef<Set<string> | null>(null)
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [cursors, setCursors] = useState<Record<string, Cursor>>({})
   const [now, setNow] = useState(Date.now())
@@ -42,12 +64,27 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     const announce = () => socket.emit('presence:route', { route: pathRef.current })
     socket.on('connect', announce)
     socket.on('presence:hello', announce)
-    socket.on('presence:roster', (r: RosterEntry[]) => setRoster(r))
+    socket.on('presence:roster', (r: RosterEntry[]) => {
+      setRoster(r)
+      const online = othersOnline(r, meRef.current)
+      const seen = seenOnline.current
+      if (!seen) { seenOnline.current = new Set(online.keys()); return }
+      for (const [id, name] of online) if (!seen.has(id)) notifyCameOnline(id, name)
+      seenOnline.current = new Set(online.keys())
+    })
     socket.on('presence:cursor', (c: Omit<Cursor, 'ts'>) =>
       setCursors((prev) => ({ ...prev, [c.user_id]: { ...c, ts: Date.now() } })))
     socket.on('presence:leave', ({ user_id }: { user_id: string }) =>
       setCursors((prev) => { const n = { ...prev }; delete n[user_id]; return n }))
-    return () => { socket.disconnect(); socketRef.current = null; setSocket(null); setRoster([]); setCursors({}) }
+    return () => { seenOnline.current = null; socket.disconnect(); socketRef.current = null; setSocket(null); setRoster([]); setCursors({}) }
+  }, [token])
+
+  useEffect(() => {
+    if (!token || typeof Notification === 'undefined' || Notification.permission !== 'default') return
+    const ask = () => { Notification.requestPermission().catch(() => {}) }
+    window.addEventListener('pointerdown', ask, { once: true })
+    window.addEventListener('keydown', ask, { once: true })
+    return () => { window.removeEventListener('pointerdown', ask); window.removeEventListener('keydown', ask) }
   }, [token])
 
   useEffect(() => {
