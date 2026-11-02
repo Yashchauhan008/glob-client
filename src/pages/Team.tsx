@@ -90,7 +90,12 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
       </div>
       <small className="tc-joined">{online ? 'Active now' : `Active ${ago(m.last_active)}`} · Joined {new Date(m.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>
 
-      {admin && !mine && !m.is_root && (
+      {admin && !mine && !m.is_root && m.status === 'not_invited' && (
+        <div className="tc-admin-row">
+          <InviteButton email={m.email} />
+        </div>
+      )}
+      {admin && !mine && !m.is_root && m.status !== 'not_invited' && (
         <div className="tc-admin-row">
           {m.status === 'blocked'
             ? <button disabled={busy} onClick={() => unblock.mutate()}><Check size={14} /> Unblock</button>
@@ -99,6 +104,25 @@ function Card({ m, mine, online, admin }: { m: TeamMember; mine: boolean; online
         </div>
       )}
     </div>
+  )
+}
+
+function InviteButton({ email }: { email: string }) {
+  const qc = useQueryClient()
+  const [note, setNote] = useState('')
+  const add = useMutation({
+    mutationFn: () => api.post<{ added: number }>('/team/invites', { emails: email }),
+    onSuccess: (r) => {
+      setNote(r.added ? 'Invited. If they’re away, the notification shows the next time they open Glob.' : 'Already invited')
+      qc.invalidateQueries({ queryKey: ['team'] }); qc.invalidateQueries({ queryKey: ['invites'] })
+    },
+    onError: (e: Error) => setNote(e instanceof ApiError ? e.message : 'Could not invite'),
+  })
+  return (
+    <>
+      <button disabled={add.isPending} title="Sends the notification now, or the next time they open Glob" onClick={() => add.mutate()}><UserPlus size={14} /> Invite</button>
+      {note && <p className="tc-err">{note}</p>}
+    </>
   )
 }
 
@@ -132,7 +156,7 @@ function Whitelist() {
         <button className="btn" disabled={add.isPending || !text.trim()}><UserPlus size={15} /> Invite</button>
       </form>
       {note && <p className="inv-note">{note}</p>}
-      <p className="muted inv-help">Anyone not on this list cannot sign in or sign up. New emails get a welcome message. Removing an email signs that person out straight away.</p>
+      <p className="muted inv-help">Anyone not on this list cannot sign in or sign up. New emails get a welcome message. If they already have an account and are offline, the notification waits until they open Glob. Removing an email signs that person out straight away.</p>
       <ul className="inv-list">
         {items.map((i) => {
           const fixed = i.email === q.data?.root_email // this one is always allowed in

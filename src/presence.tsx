@@ -49,6 +49,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   meEmail.current = user?.email?.toLowerCase()
   // null until the first roster arrives, so people already online are not announced
   const seenOnline = useRef<Set<string> | null>(null)
+  const waitingNotices = useRef<{ id?: string; title: string; body: string; tag: string }[]>([])
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [cursors, setCursors] = useState<Record<string, Cursor>>({})
   const [now, setNow] = useState(Date.now())
@@ -82,16 +83,35 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       if (!p || p.invitedById === meRef.current) return
       const by = p.invitedBy || 'Someone'
       for (const email of p.emails ?? []) {
-        const you = email.toLowerCase() === meEmail.current
-        popup(you ? `${by} invited you` : `${by} invited ${email}`, you ? 'You can sign in to Glob' : 'They can join Glob', `glob-invite-${email}`)
+        if (email.toLowerCase() === meEmail.current) continue
+        popup(`${by} invited ${email}`, 'They can join Glob', `glob-invite-${email}`)
       }
     })
+    const deliver = (n: { id?: string; title?: string; body?: string; tag?: string }) => {
+      if (!n?.title || typeof Notification === 'undefined') return
+      if (Notification.permission !== 'granted') {
+        if (Notification.permission === 'default') waitingNotices.current.push({ id: n.id, title: n.title, body: n.body || '', tag: n.tag || n.title })
+        return
+      }
+      popup(n.title, n.body || '', n.tag || n.title)
+      if (n.id) socket.emit('notice:seen', { id: n.id })
+    }
+    socket.on('notice', deliver)
     return () => { seenOnline.current = null; socket.disconnect(); socketRef.current = null; setSocket(null); setRoster([]); setCursors({}) }
   }, [token])
 
   useEffect(() => {
     if (!token || typeof Notification === 'undefined' || Notification.permission !== 'default') return
-    const ask = () => { Notification.requestPermission().catch(() => {}) }
+    const ask = () => {
+      Notification.requestPermission().then((p) => {
+        if (p !== 'granted') return
+        for (const n of waitingNotices.current) {
+          popup(n.title, n.body, n.tag)
+          if (n.id) socketRef.current?.emit('notice:seen', { id: n.id })
+        }
+        waitingNotices.current = []
+      }).catch(() => {})
+    }
     window.addEventListener('pointerdown', ask, { once: true })
     window.addEventListener('keydown', ask, { once: true })
     return () => { window.removeEventListener('pointerdown', ask); window.removeEventListener('keydown', ask) }
