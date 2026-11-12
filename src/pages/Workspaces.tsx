@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, ArrowRight, CalendarDays, CheckSquare, Clock, Lightbulb, LogIn, LogOut, Settings2, Users } from 'lucide-react'
+import { AlertCircle, ArrowRight, CalendarDays, CheckSquare, Clock, Lightbulb, LogIn, LogOut, MapPin, Settings2, Users } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useTeams } from '../teams'
 import { colorFor, initials } from '../presence'
 import Logo from '../components/Logo'
 import AdminTeams from './AdminTeams'
-import PersonalSpace, { type PersonalCounts } from '../components/PersonalSpace'
+import { Link } from 'react-router-dom'
+import type { PersonalCounts } from '../components/PersonalLists'
 
 /** Where everyone lands after signing in: their own workspaces (globs). Pick one to go in. */
 type Overview = {
@@ -118,7 +119,18 @@ export default function Workspaces() {
         </ul>
         <h1 className="ws-title">Your personal space</h1>
         <p className="muted ws-sub">Ideas, tasks and places that are just yours, outside any workspace.</p>
-        <PersonalSpace counts={me.data?.counts} />
+        <Link to="/personal/ideas" className="ws-card ps-card">
+          <span className="ws-top">
+            <span className="at-icon"><Lightbulb size={20} /></span>
+            <span className="ws-name"><b>Personal space</b><small>Only you can see it</small></span>
+            <ArrowRight size={18} />
+          </span>
+          <span className="ws-stats">
+            <span><Lightbulb size={14} /><b>{me.data?.counts.ideas ?? 0}</b> ideas</span>
+            <span><CheckSquare size={14} /><b>{me.data?.counts.open_tasks ?? 0}</b> open tasks</span>
+            <span><MapPin size={14} /><b>{me.data?.counts.pins ?? 0}</b> pinned places</span>
+          </span>
+        </Link>
       </main>
     </div>
   )

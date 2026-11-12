@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckSquare, Lightbulb, MapPin, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { IDEA_COLOR, IDEA_STATUSES } from '../types'
-import PinsPanel from './Pins'
 import { Pill } from './ui'
 
 type PIdea = { id: string; title: string; description: string; status: (typeof IDEA_STATUSES)[number] }
@@ -15,7 +14,7 @@ function useRefresh() {
   return (key: string) => { qc.invalidateQueries({ queryKey: ['personal', key] }); qc.invalidateQueries({ queryKey: ['personal', 'overview'] }) }
 }
 
-function Ideas() {
+export function PersonalIdeas() {
   const refresh = useRefresh()
   const q = useQuery({ queryKey: ['personal', 'ideas'], queryFn: () => api.get<{ items: PIdea[] }>('/personal/ideas').then((r) => r.items) })
   const [title, setTitle] = useState('')
@@ -46,7 +45,7 @@ function Ideas() {
   )
 }
 
-function Tasks() {
+export function PersonalTasks() {
   const refresh = useRefresh()
   const q = useQuery({ queryKey: ['personal', 'todos'], queryFn: () => api.get<{ items: PTodo[] }>('/personal/todos').then((r) => r.items) })
   const [title, setTitle] = useState('')
@@ -76,32 +75,5 @@ function Tasks() {
         </ul>
       )}
     </div>
-  )
-}
-
-const TABS = [
-  { id: 'ideas', label: 'Ideas', icon: Lightbulb },
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  { id: 'map', label: 'Map', icon: MapPin },
-] as const
-
-/** Your own space: private ideas, tasks and map pins that belong to no workspace. */
-export default function PersonalSpace({ counts }: { counts?: PersonalCounts }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('ideas')
-  const n = { ideas: counts?.ideas, tasks: counts?.open_tasks, map: counts?.pins }
-  return (
-    <section className="ps">
-      <div className="ps-head">
-        <div className="seg" role="tablist" aria-label="Personal space">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
-              <Icon size={14} />&nbsp;{label}{n[id] ? ` · ${n[id]}` : ''}
-            </button>
-          ))}
-        </div>
-        <small className="muted">Only you can see this.</small>
-      </div>
-      {tab === 'ideas' ? <Ideas /> : tab === 'tasks' ? <Tasks /> : <PinsPanel base="/personal/pins" height={380} />}
-    </section>
   )
 }

@@ -10,7 +10,7 @@ export const TEAMS_KEY = ['teams']
 /** The teams you can open (all of them for the platform admin). */
 export const useTeamList = () => useQuery({ queryKey: TEAMS_KEY, queryFn: () => api.get<TeamsRes>('/teams'), staleTime: 60_000 })
 
-type Ctx = { teams: TeamInfo[]; current: TeamInfo | null; lastId: string | null; leave: () => void; isRoot: boolean; loading: boolean; failed: boolean; switchTo: (id: string) => void }
+type Ctx = { teams: TeamInfo[]; current: TeamInfo | null; lastId: string | null; leave: (to?: string) => void; isRoot: boolean; loading: boolean; failed: boolean; switchTo: (id: string) => void }
 const TeamCtx = createContext<Ctx>({ teams: [], current: null, lastId: null, leave: () => {}, isRoot: false, loading: true, failed: false, switchTo: () => {} })
 export const useTeams = () => useContext(TeamCtx)
 
@@ -35,7 +35,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       api.put(`/teams/${id}/last`, {}).catch(() => {}).finally(() => window.location.assign('/home'))
     },
     /** Back to the workspaces page. */
-    leave: () => { setTeamId(null); window.location.assign('/') },
+    leave: (to = '/') => { setTeamId(null); window.location.assign(to) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [q.data, q.isLoading, q.isError, current?.id])
   return <TeamCtx.Provider value={value}>{children}</TeamCtx.Provider>

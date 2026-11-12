@@ -21,6 +21,7 @@ import AdminTeams from './pages/AdminTeams'
 import NoTeam from './pages/NoTeam'
 import Workspaces from './pages/Workspaces'
 import MapPage from './pages/MapPage'
+import PersonalApp from './pages/PersonalApp'
 
 /** Signed in: work out which team you are in before showing anything that belongs to a team. */
 function Authed() {
@@ -29,8 +30,15 @@ function Authed() {
   if (failed) return <NoTeam error />
   // signed in but not inside a workspace yet: show yours to pick from (the admin with none starts by making one)
   if (!current) {
-    if (teams.length) return <Workspaces />
-    return isRoot ? <AdminTeams standalone /> : <NoTeam />
+    if (teams.length || isRoot) {
+      return (
+        <Routes>
+          <Route path="/personal/:section?" element={<PersonalApp />} />
+          <Route path="*" element={teams.length ? <Workspaces /> : <AdminTeams standalone />} />
+        </Routes>
+      )
+    }
+    return <NoTeam />
   }
   return (
     <PresenceProvider>
