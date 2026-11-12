@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
-import { getToken, setToken } from './api'
+import { getToken, setToken, setTeamId } from './api'
 import type { User } from './types'
 
 type Ctx = { user: User | null; token: string | null; signIn: (t: string, u: User) => void; signOut: () => void; updateUser: (patch: Partial<User>) => void }
@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(t); localStorage.setItem(USER_KEY, JSON.stringify(u)); setTok(t); setUser(u)
   }, [])
   const signOut = useCallback(() => {
-    setToken(null); localStorage.removeItem(USER_KEY); setTok(null); setUser(null)
+    setToken(null); setTeamId(null); localStorage.removeItem(USER_KEY); setTok(null); setUser(null)
   }, [])
 
   // keep the stored copy in step when the person edits their own profile

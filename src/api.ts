@@ -6,6 +6,19 @@ export const getToken = () => localStorage.getItem(KEY)
 export const setToken = (t: string | null) =>
   t ? localStorage.setItem(KEY, t) : localStorage.removeItem(KEY)
 
+// The team you are working in. Every request carries it, and the server only answers for teams you belong to.
+const TEAM_KEY = 'glob_team'
+export const getTeamId = () => { try { return localStorage.getItem(TEAM_KEY) } catch { return null } }
+export const setTeamId = (id: string | null) => {
+  try { if (id) localStorage.setItem(TEAM_KEY, id); else localStorage.removeItem(TEAM_KEY) } catch { /* private mode: lasts until reload */ }
+}
+
+/** Sign-in and team headers for requests that do not go through `api` (file uploads). */
+export const authHeaders = (): Record<string, string> => {
+  const token = getToken(), team = getTeamId()
+  return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(team ? { 'X-Team-Id': team } : {}) }
+}
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -20,7 +33,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeaders(),
     },
   })
   if (res.status === 401 && token && !path.startsWith('/auth')) {
@@ -28,6 +41,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     try { const j = await res.clone().json(); if (j?.code === 'access_removed') sessionStorage.setItem('glob_notice', j.message) } catch { /* no reason given */ }
     setToken(null)
     window.location.href = '/login'
+  }
+  if (res.status === 403 && token && !path.startsWith('/auth')) {
+    // the team was deleted, or you were taken out of it: go back to one you can open
+    try { const j = await res.clone().json(); if (j?.code === 'team_forbidden') { setTeamId(null); window.location.href = '/home' } } catch { /* ordinary 403 */ }
   }
   if (res.status === 204) return undefined as T
   const ct = res.headers.get('content-type') || ''
@@ -56,10 +73,9 @@ export async function downloadCsv(entity: string) {
 }
 
 export async function uploadImage(file: File): Promise<{ file_id: string; url: string }> {
-  const token = getToken()
   const body = new FormData()
   body.append('file', file)
-  const res = await fetch(API + '/attachments/upload', { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const res = await fetch(API + '/attachments/upload', { method: 'POST', body, headers: authHeaders() })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(data?.message || 'Upload failed', res.status)
   return data
@@ -67,10 +83,9 @@ export async function uploadImage(file: File): Promise<{ file_id: string; url: s
 
 /** The server crops it to a small square and compresses it, so the original photo can be sent as is. The admin can do this for anyone. */
 export async function uploadAvatar(file: File, userId = 'me'): Promise<{ id: string; name: string; email: string; avatar_url: string | null }> {
-  const token = getToken()
   const body = new FormData()
   body.append('file', file)
-  const res = await fetch(`${API}/team/${userId}/avatar`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const res = await fetch(`${API}/team/${userId}/avatar`, { method: 'POST', body, headers: authHeaders() })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(data?.message || 'Upload failed', res.status)
   return data
@@ -80,25 +95,22 @@ const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', '
 
 /** A picture dropped onto a whiteboard. The server stores it in S3 and tells everyone else on the board. */
 export async function uploadBoardImage(boardId: string, fileId: string, blob: Blob): Promise<void> {
-  const token = getToken()
   const body = new FormData()
   body.append('fileId', fileId)
   body.append('file', blob, `${fileId.slice(0, 40)}.${EXT[blob.type] ?? 'png'}`)
-  const res = await fetch(`${API}/boards/${boardId}/images`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const res = await fetch(`${API}/boards/${boardId}/images`, { method: 'POST', body, headers: authHeaders() })
   if (!res.ok) throw new ApiError((await res.json().catch(() => ({})))?.message || 'Upload failed', res.status)
 }
 
 export async function uploadBoardThumb(boardId: string, blob: Blob): Promise<void> {
-  const token = getToken()
   const body = new FormData()
   body.append('file', blob, 'preview.webp')
-  await fetch(`${API}/boards/${boardId}/thumbnail`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  await fetch(`${API}/boards/${boardId}/thumbnail`, { method: 'POST', body, headers: authHeaders() })
 }
 
 export async function uploadThumbnail(attachmentId: string, file: File): Promise<void> {
-  const token = getToken()
   const body = new FormData()
   body.append('file', file)
-  const res = await fetch(`${API}/attachments/${attachmentId}/thumbnail`, { method: 'POST', body, headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  const res = await fetch(`${API}/attachments/${attachmentId}/thumbnail`, { method: 'POST', body, headers: authHeaders() })
   if (!res.ok) throw new ApiError((await res.json().catch(() => ({})))?.message || 'Upload failed', res.status)
 }

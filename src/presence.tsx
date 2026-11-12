@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { io, type Socket } from 'socket.io-client'
 import { API_URL } from './api'
 import { useAuth } from './auth'
+import { useTeams } from './teams'
 
 export type RosterEntry = { user_id: string; name: string; route: string }
 type Cursor = { user_id: string; name: string; x: number; y: number; ts: number }
@@ -39,6 +40,7 @@ function notifyCameOnline(userId: string, name: string) {
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
   const { token, user } = useAuth()
+  const teamId = useTeams().current?.id
   const { pathname } = useLocation()
   const socketRef = useRef<Socket | null>(null)
   const [socket, setSocket] = useState<Socket | null>(null)
@@ -55,12 +57,12 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
-    if (!token) return
+    if (!token || !teamId) return
     const socket = io(API_URL, {
       // Poll first. A websocket-only connection never completes through the proxy,
       // so the roster stays empty and Live now only shows you.
       transports: ['polling', 'websocket'],
-      auth: { token: `Bearer ${token}` },
+      auth: { token: `Bearer ${token}`, teamId },
     })
     socketRef.current = socket
     setSocket(socket)
@@ -98,7 +100,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     }
     socket.on('notice', deliver)
     return () => { seenOnline.current = null; socket.disconnect(); socketRef.current = null; setSocket(null); setRoster([]); setCursors({}) }
-  }, [token])
+  }, [token, teamId])
 
   useEffect(() => {
     if (!token || typeof Notification === 'undefined' || Notification.permission !== 'default') return

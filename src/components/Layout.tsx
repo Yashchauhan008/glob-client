@@ -15,6 +15,7 @@ import { Face } from './Avatar'
 import { useAdmin } from '../admin'
 import { QuickProvider, useQuick } from './quick'
 import { VoiceProvider } from '../voice'
+import TeamSwitcher from './TeamSwitcher'
 import CallPanel from './CallPanel'
 
 const NAV = [
@@ -62,7 +63,7 @@ export default function Layout() {
   const [menu, setMenu] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   useEffect(() => { setNavOpen(false); setMenu(false) }, [pathname])
-  const current = [...NAV, ...MENU_LINKS].find((n) => pathname === n.to || pathname.startsWith(n.to + '/'))
+  const current = [...NAV, ...MENU_LINKS, { to: '/admin', label: 'Teams' }].find((n) => pathname === n.to || pathname.startsWith(n.to + '/'))
   const barRef = useRef<HTMLElement>(null)
   const islandRef = useRef<HTMLDivElement>(null)
 
@@ -99,6 +100,7 @@ export default function Layout() {
           <header className="topbar" ref={barRef}>
             <div className="island" ref={islandRef} />
             <div className="logo"><Logo size={34} /></div>
+            <TeamSwitcher />
             <span className="mobile-title">{current?.label}</span>
             <nav className={navOpen ? 'open' : ''}>
               {NAV.map(({ to, label, icon: Icon }) => {

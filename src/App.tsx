@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth'
 import { PresenceProvider } from './presence'
+import { TeamProvider, useTeams } from './teams'
 import Layout from './components/Layout'
 import { Login, Register } from './pages/Auth'
 import Home from './pages/Home'
@@ -16,17 +17,16 @@ import Boards from './pages/Boards'
 import Board from './pages/Board'
 import Leads from './pages/Leads'
 import LeadDetail from './pages/LeadDetail'
+import AdminTeams from './pages/AdminTeams'
+import NoTeam from './pages/NoTeam'
 
-export default function App() {
-  const { token } = useAuth()
-  if (!token)
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    )
+/** Signed in: work out which team you are in before showing anything that belongs to a team. */
+function Authed() {
+  const { current, isRoot, loading, failed } = useTeams()
+  if (loading) return null
+  if (failed) return <NoTeam error />
+  // the admin with no teams yet starts by making one; everyone else waits for an invite
+  if (!current) return isRoot ? <AdminTeams standalone /> : <NoTeam />
   return (
     <PresenceProvider>
       <Routes>
@@ -44,9 +44,23 @@ export default function App() {
           <Route path="/tasks" element={<Todos />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/:id" element={<LeadDetail />} />
+          {isRoot && <Route path="/admin" element={<AdminTeams />} />}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Route>
       </Routes>
     </PresenceProvider>
   )
+}
+
+export default function App() {
+  const { token } = useAuth()
+  if (!token)
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
+  return <TeamProvider><Authed /></TeamProvider>
 }
