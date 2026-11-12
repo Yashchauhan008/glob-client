@@ -20,6 +20,7 @@ import LeadDetail from './pages/LeadDetail'
 import AdminTeams from './pages/AdminTeams'
 import NoTeam from './pages/NoTeam'
 import Workspaces from './pages/Workspaces'
+import MapPage from './pages/MapPage'
 
 /** Signed in: work out which team you are in before showing anything that belongs to a team. */
 function Authed() {
@@ -46,6 +47,7 @@ function Authed() {
           <Route path="/boards/:id" element={<Board />} />
           <Route path="/products" element={<Products />} />
           <Route path="/tasks" element={<Todos />} />
+          <Route path="/map" element={<MapPage />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/:id" element={<LeadDetail />} />
           {isRoot && <Route path="/admin" element={<AdminTeams />} />}

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
-import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, Presentation, ShieldCheck, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Users, X } from 'lucide-react'
+import { CalendarDays, CheckSquare, ChevronDown, HelpCircle, History, Home, MapPin, Presentation, ShieldCheck, UserRound, Lightbulb, LogOut, Menu, MessageCircle, Moon, Sun, Package, Users, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useTheme } from '../theme'
 import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
@@ -27,6 +27,7 @@ const NAV = [
   { to: '/leads', label: 'CRM', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/boards', label: 'Boards', icon: Presentation },
+  { to: '/map', label: 'Map', icon: MapPin },
 ]
 
 // reached from the profile menu instead of the top bar

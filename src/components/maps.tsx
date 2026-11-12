@@ -4,7 +4,7 @@ import { STAGE_COLOR } from '../types'
 
 const KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 const HOME = String(import.meta.env.VITE_MAP_HOME || '23.0225,72.5714,11').split(',').map(Number)
-const home = { lat: HOME[0] ?? 23.0225, lng: HOME[1] ?? 72.5714, zoom: HOME[2] ?? 11 }
+export const home = { lat: HOME[0] ?? 23.0225, lng: HOME[1] ?? 72.5714, zoom: HOME[2] ?? 11 }
 
 let loader: Promise<void> | null = null
 function loadMaps(): Promise<void> {
@@ -21,7 +21,7 @@ function loadMaps(): Promise<void> {
   return loader
 }
 
-function useMaps() {
+export function useMaps() {
   const [state, setState] = useState<{ ready: boolean; error: string }>({ ready: false, error: '' })
   useEffect(() => {
     loadMaps().then(() => setState({ ready: true, error: '' })).catch((e) => setState({ ready: false, error: e.message }))
@@ -29,7 +29,7 @@ function useMaps() {
   return state
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
+export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
 
 function makeOverlayClass() {
   const g = (window as any).google
@@ -54,7 +54,7 @@ function makeOverlayClass() {
   }
 }
 
-const DARK_MAP = [
+export const DARK_MAP = [
   { elementType: 'geometry', stylers: [{ color: '#1d1d21' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#9a9aa3' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1d21' }] },
@@ -156,4 +156,136 @@ export function AddressSearch({ value, onChange }: { value: string; onChange: (v
   }, [ready])
 
   return <input ref={input} defaultValue={value} placeholder="Search address (optional)" onChange={(e) => onChange({ address: e.target.value })} />
+}
+
+// ---- pins: places saved with a tag (visited, next meet point, good place, anything) ----
+
+export type Pin = {
+  id: string; title: string; note: string; tag: string; address: string
+  latitude: number; longitude: number; owner_id: string; owner_name?: string; created_at: string
+}
+
+const KNOWN_TAG: Record<string, string> = { visited: '#bff0b6', 'next meet point': '#fadf6a', 'good place': '#f7a9c7', saved: '#d3e9f8' }
+const TAG_PALETTE = ['#cfc3fb', '#fbd8c0', '#bfe3f7', '#e6d3f8', '#d3f2cc', '#f9d2e4']
+/** The same tag always gets the same colour, so a pin can be recognised on the map at a glance. */
+export function tagColor(tag: string) {
+  if (KNOWN_TAG[tag]) return KNOWN_TAG[tag]
+  let h = 0
+  for (const c of tag) h = (h * 31 + c.charCodeAt(0)) % TAG_PALETTE.length
+  return TAG_PALETTE[h]
+}
+
+function makePinOverlayClass() {
+  const g = (window as any).google
+  return class PinMarker extends g.maps.OverlayView {
+    el = document.createElement('div')
+    pos: any
+    constructor(pos: any, pin: Pin, onClick: () => void) {
+      super()
+      this.pos = pos
+      this.el.className = 'lead-pin'
+      this.el.innerHTML =
+        `<span class="dot" style="background:${tagColor(pin.tag)}"></span>` +
+        `<span class="lbl"><b>${esc(pin.title)}</b><small>${esc(pin.tag)}</small></span>`
+      this.el.onclick = (e) => { e.stopPropagation(); onClick() }
+    }
+    onAdd() { this.getPanes().overlayMouseTarget.appendChild(this.el) }
+    draw() {
+      const p = this.getProjection().fromLatLngToDivPixel(this.pos)
+      if (p) { this.el.style.left = p.x + 'px'; this.el.style.top = p.y + 'px' }
+    }
+    onRemove() { this.el.remove() }
+  }
+}
+
+/** A map of saved places. Hold Ctrl (⌘) and click the map to choose where a new pin goes. */
+export function PinMap({ pins, height = 420, onPick, draft }: {
+  pins: Pin[]; height?: number; onPick?: (lat: number, lng: number) => void; draft?: { lat: number; lng: number } | null
+}) {
+  const { ready, error } = useMaps()
+  const ref = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
+  const infoRef = useRef<any>(null)
+  const draftRef = useRef<any>(null)
+  const pick = useRef(onPick)
+  pick.current = onPick
+  const fitted = useRef('')
+
+  useEffect(() => {
+    if (!ready || !ref.current || mapRef.current) return
+    const g = (window as any).google
+    mapRef.current = new g.maps.Map(ref.current, {
+      center: { lat: home.lat, lng: home.lng }, zoom: home.zoom, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+    })
+    infoRef.current = new g.maps.InfoWindow()
+    mapRef.current.addListener('click', (e: any) => pick.current?.(e.latLng.lat(), e.latLng.lng()))
+  }, [ready])
+
+  useEffect(() => {
+    const apply = () => mapRef.current?.setOptions({ styles: document.documentElement.dataset.theme === 'dark' ? DARK_MAP : [] })
+    apply()
+    window.addEventListener('glob-theme', apply)
+    return () => window.removeEventListener('glob-theme', apply)
+  }, [ready])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const g = (window as any).google
+    markersRef.current.forEach((m) => m.setMap(null))
+    const Marker = makePinOverlayClass()
+    const bounds = new g.maps.LatLngBounds()
+    markersRef.current = pins.map((p) => {
+      const pos = new g.maps.LatLng(p.latitude, p.longitude)
+      bounds.extend(pos)
+      const m = new Marker(pos, p, () => {
+        const rows = [p.address, p.note].filter(Boolean).map((v) => `<div>${esc(String(v))}</div>`).join('')
+        infoRef.current.setContent(
+          `<div class="map-card"><b>${esc(p.title)}</b><div><em>${esc(p.tag)}</em>${p.owner_name ? ` · ${esc(p.owner_name)}` : ''}</div>${rows}` +
+          `<a href="https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}" target="_blank" rel="noreferrer">Open in Google Maps →</a></div>`)
+        infoRef.current.setPosition(pos)
+        infoRef.current.open(map)
+      })
+      m.setMap(map)
+      return m
+    })
+    // zoom to fit only when the set of pins changes, so adding a pin never yanks the view while you are choosing a spot
+    const sig = pins.map((p) => p.id).join(',')
+    if (sig !== fitted.current) {
+      fitted.current = sig
+      if (pins.length === 1) { map.setCenter(bounds.getCenter()); map.setZoom(14) }
+      else if (pins.length > 1) map.fitBounds(bounds, 60)
+      else { map.setCenter({ lat: home.lat, lng: home.lng }); map.setZoom(home.zoom) }
+    }
+  }, [ready, pins])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const g = (window as any).google
+    draftRef.current?.setMap(null)
+    draftRef.current = draft ? new g.maps.Marker({ position: { lat: draft.lat, lng: draft.lng }, map, title: 'New pin goes here' }) : null
+    if (draft) map.panTo({ lat: draft.lat, lng: draft.lng })
+  }, [ready, draft])
+
+  const [ctrl, setCtrl] = useState(false)
+  const [hover, setHover] = useState(false)
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => setCtrl(e.ctrlKey || e.metaKey)
+    const off = () => setCtrl(false)
+    window.addEventListener('keydown', on)
+    window.addEventListener('keyup', on)
+    window.addEventListener('blur', off)
+    return () => { window.removeEventListener('keydown', on); window.removeEventListener('keyup', on); window.removeEventListener('blur', off) }
+  }, [])
+
+  if (error) return <div className="map-box notice" style={{ height }}>{error}</div>
+  return (
+    <div className="map-box" style={{ height }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div ref={ref} style={{ width: '100%', height: '100%' }} />
+      {!ready && <div className="notice abs">Loading map…</div>}
+      {ready && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to move the map or drop a pin</span>}</div>}
+    </div>
+  )
 }
