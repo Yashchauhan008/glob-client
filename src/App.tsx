@@ -31,7 +31,7 @@ function Authed() {
   if (!current) {
     return (
       <Routes>
-        <Route path="/personal/:section?" element={<PersonalApp />} />
+        <Route path="/personal/:section?/:id?" element={<PersonalApp />} />
         <Route path="*" element={<Navigate to="/personal" replace />} />
       </Routes>
     )

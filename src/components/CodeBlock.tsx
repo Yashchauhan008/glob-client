@@ -65,7 +65,11 @@ const MAX_H = 900
  * `sandbox` without `allow-same-origin` makes it a separate, powerless origin. What it keeps in localStorage is saved
  * to the server as JSON a moment after each change, and handed back the next time the block loads.
  */
-export default function CodeBlock({ widget, onData }: { widget: Widget; onData?: (id: string, data: Record<string, string>) => void }) {
+export default function CodeBlock({ widget, onData, fill = false, boxRef }: {
+  widget: Widget; onData?: (id: string, data: Record<string, string>) => void
+  /** fill the space it is given (a full-screen dashboard) instead of growing to fit its content */
+  fill?: boolean; boxRef?: React.Ref<HTMLDivElement>
+}) {
   const { theme } = useTheme()
   const frame = useRef<HTMLIFrameElement>(null)
   const dataRef = useRef<Record<string, string>>(widget.data ?? {})
@@ -105,7 +109,7 @@ export default function CodeBlock({ widget, onData }: { widget: Widget; onData?:
         onData?.(widget.id, m.data)
         clearTimeout(timer.current)
         timer.current = setTimeout(save, 800)
-      } else if (m.glob === 'height' && typeof m.h === 'number') setHeight(Math.min(MAX_H, Math.max(MIN_H, m.h)))
+      } else if (m.glob === 'height' && typeof m.h === 'number') { if (!fill) setHeight(Math.min(MAX_H, Math.max(MIN_H, m.h))) }
       else if (m.glob === 'error') setError(String(m.message).slice(0, 300))
     }
     window.addEventListener('message', onMessage)
@@ -117,8 +121,8 @@ export default function CodeBlock({ widget, onData }: { widget: Widget; onData?:
   useEffect(() => { setError('') }, [widget.html])
 
   return (
-    <div className="cb">
-      <iframe ref={frame} title={widget.title} srcDoc={srcDoc} style={{ height }} referrerPolicy="no-referrer"
+    <div className={'cb' + (fill ? ' fill' : '')} ref={boxRef}>
+      <iframe ref={frame} title={widget.title} srcDoc={srcDoc} style={fill ? undefined : { height }} referrerPolicy="no-referrer"
         sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads" />
       <div className="cb-foot">
         {error ? <span className="cb-err" title={error}>Error in your code: {error}</span> : <span />}

@@ -27,7 +27,7 @@ const stamp = (s: string) => new Date(s).toLocaleString(undefined, { day: 'numer
 
 /** Your own space, built like a glob: top bar, a small side panel, and the bottom dock to move between sections. */
 export default function PersonalApp() {
-  const { section = 'workspaces' } = useParams()
+  const { section = 'workspaces', id } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
   const { teams, switchTo, lastId } = useTeams()
@@ -56,10 +56,10 @@ export default function PersonalApp() {
         </header>
 
         <div className="body">
-          <main className="main">
+          <main className={'main' + (here === 'dashboard' ? ' board-mode' : '')}>
             <div className="content">
               {here === 'workspaces' && <WorkspaceCards />}
-              {here === 'dashboard' && <PersonalDashboard />}
+              {here === 'dashboard' && <PersonalDashboard id={id} />}
               {here === 'ideas' && <><Header title="Ideas" /><p className="muted at-help">Ideas only you can see.</p><PersonalIdeas /></>}
               {here === 'tasks' && <><Header title="Tasks" /><p className="muted at-help">Your private to-do list.</p><PersonalTasks /></>}
               {here === 'map' && <><Header title="Map" /><p className="muted at-help">Places you want to remember: visited, next meet point, good spots, or your own tags. Only you see these.</p><PinsPanel base="/personal/pins" height={460} /></>}
