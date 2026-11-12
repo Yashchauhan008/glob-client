@@ -1211,3 +1211,7 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .pa-side .btn { align-self: flex-start; }
 .dock button.active { transform: translateY(-5px); box-shadow: 0 0 0 3px #fff; }
 @media (max-width: 760px) { .pa-title { display: none; } }
+
+.pin-label { font-size: 13px; font-weight: 700; margin-bottom: -4px; } .pin-label small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.pin-coords { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pin-coords input[aria-invalid='true'] { border-color: #e5483b; }
+@media (max-width: 560px) { .pin-coords { grid-template-columns: 1fr; } }
