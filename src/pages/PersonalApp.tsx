@@ -27,7 +27,7 @@ const stamp = (s: string) => new Date(s).toLocaleString(undefined, { day: 'numer
 
 /** Your own space, built like a glob: top bar, a small side panel, and the bottom dock to move between sections. */
 export default function PersonalApp() {
-  const { section = 'workspaces', id } = useParams()
+  const { section = 'dashboard', id } = useParams()
   const nav = useNavigate()
   const { user } = useAuth()
   const { teams, switchTo, lastId } = useTeams()
@@ -84,7 +84,7 @@ export default function PersonalApp() {
 
         <div className="dock">
           {SECTIONS.map(({ id, label, icon: Icon, cls }) => (
-            <button key={id} className={cls + (id === here ? ' active' : '')} data-tip={`${label}${count[id] ? ` · ${count[id]}` : ''}`} aria-label={label} aria-current={id === here} onClick={() => nav(id === 'workspaces' ? '/personal' : `/personal/${id}`)}>
+            <button key={id} className={cls + (id === here ? ' active' : '')} data-tip={`${label}${count[id] ? ` · ${count[id]}` : ''}`} aria-label={label} aria-current={id === here} onClick={() => nav(`/personal/${id}`)}>
               <Icon size={20} strokeWidth={2} />
             </button>
           ))}
