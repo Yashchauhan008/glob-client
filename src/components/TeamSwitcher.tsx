@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { Check, Layers, Settings2 } from 'lucide-react'
+import { Check, Layers, LayoutGrid, Settings2 } from 'lucide-react'
 import { useTeams } from '../teams'
 
 /** A button for the bottom bar: shows the team you are in and opens a list to move to another one. */
 export default function TeamSwitcher() {
-  const { teams, current, isRoot, switchTo } = useTeams()
+  const { teams, current, isRoot, switchTo, leave } = useTeams()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
@@ -20,7 +20,7 @@ export default function TeamSwitcher() {
     return () => window.removeEventListener('pointerdown', close)
   }, [open])
   if (!current) return null
-  const tip = teams.length > 1 || isRoot ? `Team: ${current.name}` : current.name
+  const tip = `Workspace: ${current.name}`
   return (
     <>
       <button ref={ref} className="mint" data-tip={tip} aria-label={`Switch team, now in ${current.name}`} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -36,7 +36,8 @@ export default function TeamSwitcher() {
               {t.id === current.id && <Check size={15} />}
             </button>
           ))}
-          {isRoot && <><hr /><Link to="/admin" onClick={() => setOpen(false)}><Settings2 size={16} /> Manage teams</Link></>}
+          <hr /><button role="menuitem" onClick={leave}><LayoutGrid size={16} /> All workspaces</button>
+          {isRoot && <Link to="/admin" onClick={() => setOpen(false)}><Settings2 size={16} /> Manage teams</Link>}
         </div>,
         document.body,
       )}

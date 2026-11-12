@@ -1146,3 +1146,13 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .solo-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 90px; }
 .solo-center h1 { font-size: 30px; margin: 0; }
 [data-theme='dark'] .solo { background: #111114; color: var(--text, #f2f2f4); }
+
+.at-list li { flex-wrap: wrap; } .at-members { flex-basis: 100%; padding-top: 10px; border-top: 1px solid var(--line); } .at-members .inv-add { flex-wrap: wrap; } .at-members .inv-add input, .at-members .inv-add select:first-child { flex: 1 1 160px; }
+
+.solo-actions { display: inline-flex; gap: 8px; }
+.ws-title { font-size: 32px; margin: 10px 0 4px; } .ws-sub { margin: 0 0 22px; }
+.ws-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.ws-card { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: var(--surface, #fff); color: inherit; border: 0; border-radius: 22px; box-shadow: 0 0 0 1px var(--line); padding: 16px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.ws-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--ink); }
+.ws-name { flex: 1; min-width: 0; display: flex; flex-direction: column; } .ws-name b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ws-name small { color: var(--muted); font-weight: 600; }
+[data-theme='dark'] .ws-card { background: #1c1c20; box-shadow: 0 0 0 1px #2e2e34; } [data-theme='dark'] .ws-card:hover { box-shadow: 0 0 0 2px #fff; }

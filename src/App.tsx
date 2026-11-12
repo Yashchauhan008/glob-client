@@ -19,14 +19,18 @@ import Leads from './pages/Leads'
 import LeadDetail from './pages/LeadDetail'
 import AdminTeams from './pages/AdminTeams'
 import NoTeam from './pages/NoTeam'
+import Workspaces from './pages/Workspaces'
 
 /** Signed in: work out which team you are in before showing anything that belongs to a team. */
 function Authed() {
-  const { current, isRoot, loading, failed } = useTeams()
+  const { current, teams, isRoot, loading, failed } = useTeams()
   if (loading) return null
   if (failed) return <NoTeam error />
-  // the admin with no teams yet starts by making one; everyone else waits for an invite
-  if (!current) return isRoot ? <AdminTeams standalone /> : <NoTeam />
+  // signed in but not inside a workspace yet: show yours to pick from (the admin with none starts by making one)
+  if (!current) {
+    if (teams.length) return <Workspaces />
+    return isRoot ? <AdminTeams standalone /> : <NoTeam />
+  }
   return (
     <PresenceProvider>
       <Routes>
