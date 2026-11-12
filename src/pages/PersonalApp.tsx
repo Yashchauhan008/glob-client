@@ -1,6 +1,6 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Clock, Lightbulb, LayoutGrid, CheckSquare, LogOut, MapPin, Moon, Sun } from 'lucide-react'
+import { Clock, Code2, Lightbulb, LayoutGrid, CheckSquare, LogOut, MapPin, Moon, Sun } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useTeams } from '../teams'
@@ -11,9 +11,11 @@ import PinsPanel from '../components/Pins'
 import { PersonalIdeas, PersonalTasks, type PersonalCounts } from '../components/PersonalLists'
 import { Header } from '../components/ui'
 import WorkspaceCards from './Workspaces'
+import PersonalDashboard from '../components/PersonalDashboard'
 
 const SECTIONS = [
   { id: 'workspaces', label: 'Workspaces', icon: LayoutGrid, cls: 'sky' },
+  { id: 'dashboard', label: 'Dashboard', icon: Code2, cls: 'sun' },
   { id: 'ideas', label: 'Ideas', icon: Lightbulb, cls: 'lilac' },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare, cls: 'pink' },
   { id: 'map', label: 'Map', icon: MapPin, cls: 'mint' },
@@ -36,7 +38,7 @@ export default function PersonalApp() {
   const here = section as Section
   const a = me.data?.account
   const c = me.data?.counts
-  const count: Record<Section, number | undefined> = { workspaces: undefined, ideas: c?.ideas, tasks: c?.open_tasks, map: c?.pins }
+  const count: Record<Section, number | undefined> = { workspaces: undefined, dashboard: undefined, ideas: c?.ideas, tasks: c?.open_tasks, map: c?.pins }
   const name = a?.name ?? user?.name ?? ''
   const avatar = a?.avatar_url ?? user?.avatar_url ?? null
 
@@ -57,6 +59,7 @@ export default function PersonalApp() {
           <main className="main">
             <div className="content">
               {here === 'workspaces' && <WorkspaceCards />}
+              {here === 'dashboard' && <PersonalDashboard />}
               {here === 'ideas' && <><Header title="Ideas" /><p className="muted at-help">Ideas only you can see.</p><PersonalIdeas /></>}
               {here === 'tasks' && <><Header title="Tasks" /><p className="muted at-help">Your private to-do list.</p><PersonalTasks /></>}
               {here === 'map' && <><Header title="Map" /><p className="muted at-help">Places you want to remember: visited, next meet point, good spots, or your own tags. Only you see these.</p><PinsPanel base="/personal/pins" height={460} /></>}

@@ -1215,3 +1215,18 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 .pin-label { font-size: 13px; font-weight: 700; margin-bottom: -4px; } .pin-label small { font-weight: 600; color: var(--muted); margin-left: 6px; }
 .pin-coords { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .pin-coords input[aria-invalid='true'] { border-color: #e5483b; }
 @media (max-width: 560px) { .pin-coords { grid-template-columns: 1fr; } }
+
+.cb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.cb-card { background: var(--surface, #fff); border-radius: 22px; box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.cb-card > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--line); }
+.cb-card > header b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .cb-card > header span { display: inline-flex; gap: 6px; }
+.cb iframe { display: block; width: 100%; border: 0; background: transparent; }
+.cb-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 14px 8px; min-height: 22px; }
+.cb-err { color: #c0392b; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-form { display: flex; flex-direction: column; gap: 10px; } .cb-form .btn { align-self: flex-start; }
+.cb-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.5; border-radius: 14px; min-height: 280px; resize: vertical; white-space: pre; overflow: auto; }
+.cb-tips { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .cb-tips code, .at-help code { background: var(--side); border-radius: 6px; padding: 1px 6px; font-size: .92em; }
+.cb-json { background: var(--side); border-radius: 14px; padding: 12px; max-height: 320px; overflow: auto; font-size: 12.5px; margin: 8px 0 12px; }
+.modal:has(.cb-form) { width: min(720px, 94vw); }
+[data-theme='dark'] .cb-card { background: #1c1c20; box-shadow: 0 0 0 1px #2e2e34; } [data-theme='dark'] .cb-card > header { border-color: #2e2e34; }
+[data-theme='dark'] .cb-json, [data-theme='dark'] .cb-tips code, [data-theme='dark'] .at-help code { background: #26262b; }
