@@ -36,7 +36,7 @@ export default function TeamSwitcher() {
               {t.id === current.id && <Check size={15} />}
             </button>
           ))}
-          <hr /><button role="menuitem" onClick={() => leave('/')}><LayoutGrid size={16} /> All workspaces</button>
+          <hr /><button role="menuitem" onClick={() => leave('/personal')}><LayoutGrid size={16} /> All workspaces</button>
           <button role="menuitem" onClick={() => leave('/personal/ideas')}><UserRound size={16} /> Personal space</button>
           {isRoot && <Link to="/admin" onClick={() => setOpen(false)}><Settings2 size={16} /> Manage teams</Link>}
         </div>,

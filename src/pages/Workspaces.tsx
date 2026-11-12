@@ -1,16 +1,12 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, ArrowRight, CalendarDays, CheckSquare, Clock, Lightbulb, LogIn, LogOut, MapPin, Settings2, Users } from 'lucide-react'
+import { AlertCircle, ArrowRight, CalendarDays, CheckSquare, Lightbulb, Settings2, Users } from 'lucide-react'
+import { useState } from 'react'
 import { api } from '../api'
-import { useAuth } from '../auth'
 import { useTeams } from '../teams'
 import { colorFor, initials } from '../presence'
-import Logo from '../components/Logo'
+import { Empty } from '../components/ui'
 import AdminTeams from './AdminTeams'
-import { Link } from 'react-router-dom'
-import type { PersonalCounts } from '../components/PersonalLists'
 
-/** Where everyone lands after signing in: their own workspaces (globs). Pick one to go in. */
 type Overview = {
   id: string; ideas: number; open_tasks: number; tasks_due: number; open_leads: number; events_week: number
   next_event: { title: string; starts_at: string } | null; last_activity: string | null
@@ -27,59 +23,23 @@ const ago = (s: string | null) => {
 }
 const when = (s: string) => new Date(s).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-type Account = { id: string; name: string; email: string; avatar_url: string | null; created_at: string; last_login_at: string | null; prev_login_at: string | null; login_count: number; workspaces: number }
-const day = (s: string) => new Date(s).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-const stamp = (s: string) => new Date(s).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-
-/** Who is signed in: picture, name, email, and when they were here before. */
-function AccountCard({ a, counts }: { a?: Account; counts?: PersonalCounts }) {
-  const { user } = useAuth()
-  const name = a?.name ?? user?.name ?? ''
-  const avatar = a?.avatar_url ?? user?.avatar_url ?? null
-  return (
-    <section className="acct">
-      <i className="acct-av" style={{ background: colorFor(user?.id ?? name) }}>{avatar ? <img className="av-img" src={avatar} alt="" /> : initials(name)}</i>
-      <div className="acct-main">
-        <h2>{name}</h2>
-        <p>{a?.email ?? user?.email}</p>
-        <div className="acct-facts">
-          <span title="This session"><LogIn size={14} /> Signed in now</span>
-          {a?.prev_login_at && <span title="Your previous sign-in"><Clock size={14} /> Last time {stamp(a.prev_login_at)}</span>}
-          {a && <span>{a.login_count} {a.login_count === 1 ? 'sign-in' : 'sign-ins'}</span>}
-          {a && <span>{a.workspaces} {a.workspaces === 1 ? 'workspace' : 'workspaces'}</span>}
-          {a && <span>Member since {day(a.created_at)}</span>}
-        </div>
-      </div>
-      {counts && counts.tasks_due > 0 && <span className="ws-due"><AlertCircle size={14} /> {counts.tasks_due} personal {counts.tasks_due === 1 ? 'task is' : 'tasks are'} due</span>}
-    </section>
-  )
-}
-
-export default function Workspaces() {
-  const { user, signOut } = useAuth()
+/** Every workspace you can open, with a glance at what is happening in each. Click one to go in. */
+export default function WorkspaceCards() {
   const { teams, lastId, isRoot, switchTo } = useTeams()
   const [managing, setManaging] = useState(false)
   const ov = useQuery({ queryKey: ['teams', 'overview'], queryFn: () => api.get<{ items: Overview[] }>('/teams/overview') })
-  const me = useQuery({ queryKey: ['personal', 'overview'], queryFn: () => api.get<{ account: Account; counts: PersonalCounts }>('/personal/overview') })
   const stats = new Map((ov.data?.items ?? []).map((o) => [o.id, o]))
-  if (managing) return <AdminTeams standalone onBack={() => setManaging(false)} />
-
   // the one you used last comes first
   const list = [...teams].sort((a, b) => Number(b.id === lastId) - Number(a.id === lastId))
+  if (managing) return <><button className="btn small ghost" onClick={() => setManaging(false)}>← Back to workspaces</button><AdminTeams /></>
   return (
-    <div className="solo">
-      <header className="solo-bar">
-        <Logo size={30} />
-        <span className="solo-actions">
-          {isRoot && <button className="btn small ghost" onClick={() => setManaging(true)}><Settings2 size={14} /> Manage teams</button>}
-          <button className="btn small ghost" onClick={signOut}><LogOut size={14} /> Sign out</button>
-        </span>
-      </header>
-      <main className="solo-main wide">
-        <AccountCard a={me.data?.account} counts={me.data?.counts} />
-        <h1 className="ws-title">Your workspaces</h1>
-        <p className="muted ws-sub">Hi {user?.name?.split(' ')[0]}. Choose a workspace to open.</p>
-        <ul className="ws-grid">
+    <>
+      <div className="page-head"><h1>Workspaces</h1>
+        <div className="actions">{isRoot && <button className="btn small ghost" onClick={() => setManaging(true)}><Settings2 size={14} /> Manage teams</button>}</div>
+      </div>
+      <p className="muted at-help">Choose a workspace to open. You can come back here any time from the bottom bar.</p>
+      {!list.length && <Empty>You are not in a workspace yet. Ask a team owner to invite you.</Empty>}
+      <ul className="ws-grid">
           {list.map((t) => {
             const o = stats.get(t.id)
             return (
@@ -117,21 +77,6 @@ export default function Workspaces() {
             )
           })}
         </ul>
-        <h1 className="ws-title">Your personal space</h1>
-        <p className="muted ws-sub">Ideas, tasks and places that are just yours, outside any workspace.</p>
-        <Link to="/personal/ideas" className="ws-card ps-card">
-          <span className="ws-top">
-            <span className="at-icon"><Lightbulb size={20} /></span>
-            <span className="ws-name"><b>Personal space</b><small>Only you can see it</small></span>
-            <ArrowRight size={18} />
-          </span>
-          <span className="ws-stats">
-            <span><Lightbulb size={14} /><b>{me.data?.counts.ideas ?? 0}</b> ideas</span>
-            <span><CheckSquare size={14} /><b>{me.data?.counts.open_tasks ?? 0}</b> open tasks</span>
-            <span><MapPin size={14} /><b>{me.data?.counts.pins ?? 0}</b> pinned places</span>
-          </span>
-        </Link>
-      </main>
-    </div>
+    </>
   )
 }
