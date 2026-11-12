@@ -103,7 +103,11 @@ export default function PersonalDashboard({ id }: { id?: string }) {
       </div>
 
       <div className="dash-stage">
-        <CodeBlock key={`${current.id}:${reload[current.id] ?? 0}`} widget={current} fill boxRef={box} onData={(wid, d) => { live.current[wid] = d }} />
+        <CodeBlock key={`${current.id}:${reload[current.id] ?? 0}`} widget={{ ...current, data: live.current[current.id] ?? current.data }} fill boxRef={box} onData={(wid, d) => {
+          live.current[wid] = d
+          // keep the cached copy current, so coming back to this dashboard later starts from what it last saved
+          qc.setQueryData<Widget[]>(['personal', 'widgets'], (all) => all?.map((w) => (w.id === wid ? { ...w, data: d } : w)))
+        }} />
       </div>
 
       {editing && <Editor initial={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} onSaved={(w) => { refresh(); if (editing === 'new') go(w) }} />}
