@@ -1114,17 +1114,13 @@ i:has(> .av-img), span:has(> .av-img) { overflow: hidden; }
 @media (max-width: 760px) { .invites { padding: 6px 16px 20px; } .inv-list li { flex-wrap: wrap; padding: 12px 10px 12px 16px; } .inv-mail { flex-basis: 100%; } }
 
 /* teams: the switcher in the top bar, the admin page, and the screens shown before you are in a team */
-.team-switch { position: relative; flex: none; margin-right: 10px; }
-.team-pill { display: inline-flex; align-items: center; gap: 6px; max-width: 170px; height: 34px; padding: 0 12px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: #fff; font-size: 13px; cursor: pointer; }
-.team-pill b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
-.team-pill:hover { background: rgba(255,255,255,.16); }
-.team-menu { top: 44px; left: 0; right: auto; min-width: 210px; max-height: 60vh; overflow: auto; }
+.team-menu { position: fixed; top: auto; bottom: 96px; left: 50%; right: auto; transform: translateX(-50%); z-index: 30; min-width: 220px; max-width: calc(100vw - 24px); max-height: 50vh; overflow: auto; }
 .team-menu button { width: 100%; text-align: left; }
 .team-menu button.on { background: var(--side); }
 .team-menu .tm-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team-menu small { color: var(--muted); font-weight: 700; }
 [data-theme='dark'] .team-menu button.on { background: #2e2e34; }
-@media (max-width: 760px) { .team-pill { max-width: 110px; padding: 0 10px; } .team-switch { margin-right: 4px; } }
+@media (max-width: 760px) { .team-menu { bottom: 84px; } }
 
 .tc-owner { display: inline-flex; align-items: center; gap: 3px; background: #fbe9b8; color: #5b4300; }
 .invites .inv-add select { flex: none; }

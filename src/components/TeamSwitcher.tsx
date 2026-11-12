@@ -1,28 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { Check, ChevronDown, Settings2 } from 'lucide-react'
+import { Check, Layers, Settings2 } from 'lucide-react'
 import { useTeams } from '../teams'
 
-/** The name of the team you are in, with a menu to move to another one. */
+/** A button for the bottom bar: shows the team you are in and opens a list to move to another one. */
 export default function TeamSwitcher() {
   const { teams, current, isRoot, switchTo } = useTeams()
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
-    const close = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    const close = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (!ref.current?.contains(t) && !menu.current?.contains(t)) setOpen(false)
+    }
     window.addEventListener('pointerdown', close)
     return () => window.removeEventListener('pointerdown', close)
   }, [open])
   if (!current) return null
-  const many = teams.length > 1 || isRoot
+  const tip = teams.length > 1 || isRoot ? `Team: ${current.name}` : current.name
   return (
-    <div className="team-switch" ref={ref}>
-      <button className="team-pill" onClick={() => many && setOpen(!open)} aria-haspopup={many} aria-expanded={open} title={many ? 'Switch team' : current.name} style={many ? undefined : { cursor: 'default' }}>
-        <b>{current.name}</b>{many && <ChevronDown size={14} />}
+    <>
+      <button ref={ref} className="mint" data-tip={tip} aria-label={`Switch team, now in ${current.name}`} aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Layers size={20} strokeWidth={2} />
       </button>
-      {open && (
-        <div className="menu team-menu" role="menu">
+      {open && createPortal(
+        // outside the dock, so the dock's round-button styling does not apply to the list
+        <div className="menu team-menu" role="menu" ref={menu}>
           {teams.map((t) => (
             <button key={t.id} role="menuitem" className={t.id === current.id ? 'on' : ''} onClick={() => { setOpen(false); switchTo(t.id) }}>
               <span className="tm-name">{t.name}</span>
@@ -31,8 +37,9 @@ export default function TeamSwitcher() {
             </button>
           ))}
           {isRoot && <><hr /><Link to="/admin" onClick={() => setOpen(false)}><Settings2 size={16} /> Manage teams</Link></>}
-        </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   )
 }

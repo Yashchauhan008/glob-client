@@ -44,6 +44,7 @@ function Dock() {
   ]
   return (
     <div className="dock">
+      <TeamSwitcher />
       {items.map(({ icon: Icon, tip, cls, run }) => <button key={tip} className={cls} data-tip={tip} aria-label={tip} onClick={run}><Icon size={20} strokeWidth={2} /></button>)}
     </div>
   )
@@ -100,7 +101,6 @@ export default function Layout() {
           <header className="topbar" ref={barRef}>
             <div className="island" ref={islandRef} />
             <div className="logo"><Logo size={34} /></div>
-            <TeamSwitcher />
             <span className="mobile-title">{current?.label}</span>
             <nav className={navOpen ? 'open' : ''}>
               {NAV.map(({ to, label, icon: Icon }) => {
