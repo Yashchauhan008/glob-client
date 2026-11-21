@@ -47,7 +47,7 @@ export default function LeadDetail() {
               ['Follow-up', data.next_follow_up_at && fmtDateTime(data.next_follow_up_at)], ['Lost reason', data.lost_reason]] as const)
               .filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
           </dl>
-          <h3 className="att-title">Links &amp; images</h3>
+          <h3 className="att-title">References</h3>
           <Attachments type="lead" id={data.id} />
         </section>
         <section className="panel">

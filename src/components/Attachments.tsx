@@ -1,14 +1,24 @@
-import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react'
+import { useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, ImagePlus, Link2, X } from 'lucide-react'
-import { api, uploadImage, uploadThumbnail } from '../api'
+import { ExternalLink, FileText, ImagePlus, Link2, Paperclip, StickyNote, X } from 'lucide-react'
+import { api, uploadAttachmentFile, uploadImage, uploadThumbnail } from '../api'
 import { Modal } from './ui'
 import { faviconUrl, fileUrl } from '../files'
 
 export type AttachEntity = 'idea' | 'note' | 'question' | 'todo' | 'event' | 'lead'
-export type Attachment = { id: string; kind: 'link' | 'image'; url: string; title: string; thumb_url?: string | null; created_at?: string; owner_name?: string }
-export type Draft = { links: string[]; files: File[] }
-export const emptyDraft: Draft = { links: [], files: [] }
+export type AttachKind = 'link' | 'image' | 'text' | 'video' | 'document'
+export type Attachment = {
+  id: string
+  kind: AttachKind
+  url: string
+  title: string
+  body?: string
+  thumb_url?: string | null
+  created_at?: string
+  owner_name?: string
+}
+export type Draft = { links: string[]; files: File[]; docs: File[]; notes: string[] }
+export const emptyDraft: Draft = { links: [], files: [], docs: [], notes: [] }
 
 const SITES: [RegExp, string, string][] = [
   [/(^|\.)instagram\.com$/, 'Instagram', 'linear-gradient(135deg,#f9ce34,#ee2a7b 55%,#6228d7)'],
@@ -18,6 +28,9 @@ const SITES: [RegExp, string, string][] = [
   [/(^|\.)reddit\.com$/, 'Reddit', '#ff4500'],
   [/(^|\.)linkedin\.com$/, 'LinkedIn', '#0a66c2'],
   [/(^|\.)github\.com$/, 'GitHub', '#24292f'],
+  [/(^|\.)(docs\.google\.com|drive\.google\.com)$/, 'Google Docs', '#1a73e8'],
+  [/(^|\.)notion\.so$/, 'Notion', '#111'],
+  [/(^|\.)figma\.com$/, 'Figma', '#a259ff'],
 ]
 export function describeLink(url: string) {
   try {
@@ -29,13 +42,21 @@ export function describeLink(url: string) {
   } catch { return { host: url, label: 'Link', bg: '#5b5b66', path: '', known: false } }
 }
 
+function hrefOf(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
+function fileLabel(name: string) {
+  const ext = name.includes('.') ? name.split('.').pop()!.toUpperCase() : 'FILE'
+  return ext.slice(0, 4)
+}
+
 export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' | 'title' | 'thumb_url'>; onRemove?: () => void; onThumb?: (f: File) => void }) {
   const d = describeLink(a.url)
   const pick = useRef<HTMLInputElement>(null)
-  const href = /^https?:\/\//i.test(a.url) ? a.url : `https://${a.url}`
   return (
     <div className="att-link">
-      <a href={href} target="_blank" rel="noreferrer noopener">
+      <a href={hrefOf(a.url)} target="_blank" rel="noreferrer noopener">
         {a.thumb_url
           ? <span className="att-pic"><img src={fileUrl(a.thumb_url)} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none' }} /></span>
           : d.known
@@ -55,49 +76,137 @@ export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' |
   )
 }
 
-/** Collects links + pasted/dropped/chosen images; works for saved rows (via `onAddLink`/`onAddFiles`) or a draft. */
-function Adder({ onLink, onFiles, busy }: { onLink: (url: string) => void; onFiles: (f: File[]) => void; busy?: boolean }) {
-  const [url, setUrl] = useState('')
-  const pick = useRef<HTMLInputElement>(null)
-  const images = (list: FileList | File[] | null) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
-  const addLink = () => { const v = url.trim(); if (v) { onLink(v); setUrl('') } }
-  const onPaste = (e: ClipboardEvent) => {
-    const imgs = images(e.clipboardData.files)
-    if (imgs.length) { e.preventDefault(); onFiles(imgs) }
-  }
-  const onDrop = (e: DragEvent) => { const imgs = images(e.dataTransfer.files); if (imgs.length) { e.preventDefault(); onFiles(imgs) } }
+function DocCard({ a, onRemove }: { a: Pick<Attachment, 'url' | 'title' | 'kind'>; onRemove?: () => void }) {
+  const name = a.title || (a.kind === 'video' ? 'Video' : 'Document')
+  const href = a.url && a.url !== '#' ? (fileUrl(a.url) || hrefOf(a.url)) : ''
+  const inner = (
+    <>
+      <span className="att-badge" style={{ background: a.kind === 'video' ? '#ff2d2d' : '#3a3a3e' }}>{fileLabel(name)}</span>
+      <span className="att-text"><b>{name}</b><small>{a.kind === 'video' ? 'Video file' : 'Document'}</small></span>
+      {href ? <ExternalLink size={15} /> : null}
+    </>
+  )
   return (
-    <div className="att-add" onPaste={onPaste} onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
-      <div className="att-input">
-        <Link2 size={16} />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a reel / post link…" disabled={busy}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink() } }} />
-        <button type="button" className="btn small" onClick={addLink} disabled={!url.trim() || busy}>Add</button>
-      </div>
-      <button type="button" className="btn ghost small" onClick={() => pick.current?.click()} disabled={busy}><ImagePlus size={15} /> Image</button>
-      <input ref={pick} type="file" accept="image/*" multiple hidden onChange={(e) => { onFiles(images(e.target.files)); e.target.value = '' }} />
-      <small className="att-hint">You can also paste or drop a screenshot here.</small>
+    <div className="att-link">
+      {href
+        ? <a href={href} target="_blank" rel="noreferrer noopener">{inner}</a>
+        : <div className="att-link-static">{inner}</div>}
+      {onRemove && <button type="button" className="att-x" aria-label="Remove" onClick={onRemove}><X size={14} /></button>}
     </div>
   )
 }
 
-/** Attachments of a saved item: thumbnails, link cards, add/remove. */
+function NoteCard({ a, onRemove }: { a: Pick<Attachment, 'title' | 'body'>; onRemove?: () => void }) {
+  return (
+    <div className="att-note">
+      <StickyNote size={16} />
+      <div className="att-text"><b>{a.title || 'Note'}</b>{!!a.body && a.body !== a.title && <small>{a.body}</small>}</div>
+      {onRemove && <button type="button" className="att-x" aria-label="Remove" onClick={onRemove}><X size={14} /></button>}
+    </div>
+  )
+}
+
+/** Collects links, images, docs, and short notes for a reference list. */
+function Adder({
+  onLink, onImages, onDocs, onNote, busy,
+}: {
+  onLink: (url: string) => void
+  onImages: (f: File[]) => void
+  onDocs: (f: File[]) => void
+  onNote: (text: string) => void
+  busy?: boolean
+}) {
+  const [url, setUrl] = useState('')
+  const [note, setNote] = useState('')
+  const [writing, setWriting] = useState(false)
+  const imgPick = useRef<HTMLInputElement>(null)
+  const docPick = useRef<HTMLInputElement>(null)
+  const images = (list: FileList | File[] | null) => [...(list ?? [])].filter((f) => f.type.startsWith('image/'))
+  const docs = (list: FileList | File[] | null) => [...(list ?? [])].filter((f) => !f.type.startsWith('image/'))
+  const addLink = () => { const v = url.trim(); if (v) { onLink(v); setUrl('') } }
+  const addNote = (e: FormEvent) => {
+    e.preventDefault()
+    const v = note.trim()
+    if (!v) return
+    onNote(v)
+    setNote('')
+    setWriting(false)
+  }
+  const onPaste = (e: ClipboardEvent) => {
+    const imgs = images(e.clipboardData.files)
+    if (imgs.length) { e.preventDefault(); onImages(imgs); return }
+    const files = docs(e.clipboardData.files)
+    if (files.length) { e.preventDefault(); onDocs(files) }
+  }
+  const onDrop = (e: DragEvent) => {
+    const imgs = images(e.dataTransfer.files)
+    const files = docs(e.dataTransfer.files)
+    if (!imgs.length && !files.length) return
+    e.preventDefault()
+    if (imgs.length) onImages(imgs)
+    if (files.length) onDocs(files)
+  }
+  return (
+    <div className="att-add" onPaste={onPaste} onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
+      <div className="att-input">
+        <Link2 size={16} />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste any link…" disabled={busy}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLink() } }} />
+        <button type="button" className="btn small" onClick={addLink} disabled={!url.trim() || busy}>Add</button>
+      </div>
+      <button type="button" className="btn ghost small" onClick={() => imgPick.current?.click()} disabled={busy}><ImagePlus size={15} /> Image</button>
+      <button type="button" className="btn ghost small" onClick={() => docPick.current?.click()} disabled={busy}><Paperclip size={15} /> File</button>
+      <button type="button" className="btn ghost small" onClick={() => setWriting((v) => !v)} disabled={busy}><FileText size={15} /> Note</button>
+      <input ref={imgPick} type="file" accept="image/*" multiple hidden onChange={(e) => { onImages(images(e.target.files)); e.target.value = '' }} />
+      <input ref={docPick} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.mp4,.webm,.mov,.m4v,application/*,video/*" multiple hidden onChange={(e) => { onDocs(docs(e.target.files)); e.target.value = '' }} />
+      {writing && (
+        <form className="att-note-form" onSubmit={addNote}>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="A short reference note…" autoFocus disabled={busy} />
+          <button type="submit" className="btn small" disabled={!note.trim() || busy}>Save note</button>
+        </form>
+      )}
+      <small className="att-hint">Links, images, docs, or a note. Paste or drop files here too.</small>
+    </div>
+  )
+}
+
+/** References on a saved item: images, clickable links, docs, notes. */
 export default function Attachments({ type, id, editable = true }: { type: AttachEntity; id: string; editable?: boolean }) {
   const qc = useQueryClient()
   const key = ['attachments', type, id]
   const q = useQuery({
     queryKey: key,
     queryFn: () => api.get<{ items: Attachment[] }>(`/attachments?type=${type}&id=${id}`),
-    // a fresh link's preview is fetched in the background: look again for a short while
-    refetchInterval: (query) => query.state.data?.items.some((a) => a.kind === 'link' && !a.thumb_url && a.created_at && Date.now() - new Date(a.created_at).getTime() < 25000) ? 2500 : false,
+    refetchInterval: (query) => query.state.data?.items.some((a) => (a.kind === 'link' || a.kind === 'video') && !a.thumb_url && a.created_at && Date.now() - new Date(a.created_at).getTime() < 25000) ? 2500 : false,
   })
   const [open, setOpen] = useState<string | null>(null)
   const [err, setErr] = useState('')
   const refresh = () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ['ideas'] }) }
 
-  const addLink = useMutation({ mutationFn: (url: string) => api.post('/attachments', { entity_type: type, entity_id: id, kind: 'link', url }), onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message) })
-  const addFiles = useMutation({
-    mutationFn: async (files: File[]) => { for (const f of files) { const up = await uploadImage(f); await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'image', file_id: up.file_id }) } },
+  const addLink = useMutation({
+    mutationFn: (url: string) => api.post('/attachments', { entity_type: type, entity_id: id, kind: 'link', url }),
+    onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message),
+  })
+  const addImages = useMutation({
+    mutationFn: async (files: File[]) => {
+      for (const f of files) {
+        const up = await uploadImage(f)
+        await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'image', file_id: up.file_id })
+      }
+    },
+    onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message),
+  })
+  const addDocs = useMutation({
+    mutationFn: async (files: File[]) => {
+      for (const f of files) {
+        const up = await uploadAttachmentFile(f)
+        await api.post('/attachments', { entity_type: type, entity_id: id, kind: up.kind, file_id: up.file_id, title: up.name })
+      }
+    },
+    onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message),
+  })
+  const addNote = useMutation({
+    mutationFn: (text: string) => api.post('/attachments', { entity_type: type, entity_id: id, kind: 'text', body: text, title: text.slice(0, 80) }),
     onSuccess: () => { setErr(''); refresh() }, onError: (e: Error) => setErr(e.message),
   })
   const setThumb = useMutation({ mutationFn: ({ id: aid, file }: { id: string; file: File }) => uploadThumbnail(aid, file), onSuccess: refresh, onError: (e: Error) => setErr(e.message) })
@@ -105,7 +214,11 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
 
   const items = q.data?.items ?? []
   const images = items.filter((a) => a.kind === 'image')
-  const links = items.filter((a) => a.kind === 'link')
+  const links = items.filter((a) => a.kind === 'link' || a.kind === 'video')
+  const docs = items.filter((a) => a.kind === 'document')
+  const notes = items.filter((a) => a.kind === 'text')
+  const busy = addLink.isPending || addImages.isPending || addDocs.isPending || addNote.isPending
+
   return (
     <div className="att">
       {!!images.length && (
@@ -119,16 +232,26 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
         </div>
       )}
       {!!links.length && <div className="att-links">{links.map((a) => <LinkCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} onThumb={editable ? (file) => setThumb.mutate({ id: a.id, file }) : undefined} />)}</div>}
-      {!items.length && !q.isLoading && <p className="muted">Nothing attached yet.</p>}
-      {editable && <Adder busy={addLink.isPending || addFiles.isPending} onLink={(u) => addLink.mutate(u)} onFiles={(f) => f.length && addFiles.mutate(f)} />}
-      {(addFiles.isPending || addLink.isPending) && <small className="muted">Saving…</small>}
+      {!!docs.length && <div className="att-links">{docs.map((a) => <DocCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} />)}</div>}
+      {!!notes.length && <div className="att-notes">{notes.map((a) => <NoteCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} />)}</div>}
+      {!items.length && !q.isLoading && <p className="muted">Nothing referenced yet.</p>}
+      {editable && (
+        <Adder
+          busy={busy}
+          onLink={(u) => addLink.mutate(u)}
+          onImages={(f) => f.length && addImages.mutate(f)}
+          onDocs={(f) => f.length && addDocs.mutate(f)}
+          onNote={(t) => addNote.mutate(t)}
+        />
+      )}
+      {busy && <small className="muted">Saving…</small>}
       {err && <div className="form-err">{err}</div>}
       {open && <Modal title="" onClose={() => setOpen(null)}><img className="att-full" src={open} alt="" /><a className="link" href={open} target="_blank" rel="noreferrer">Open original</a></Modal>}
     </div>
   )
 }
 
-/** Attach while creating: nothing is sent until the item exists (see `saveDraft`). */
+/** Collect references while creating; nothing is sent until the item exists (see `saveDraft`). */
 export function AttachDraft({ draft, setDraft }: { draft: Draft; setDraft: (d: Draft) => void }) {
   const previews = useRef(new Map<File, string>())
   const src = (f: File) => { if (!previews.current.has(f)) previews.current.set(f, URL.createObjectURL(f)); return previews.current.get(f)! }
@@ -142,7 +265,14 @@ export function AttachDraft({ draft, setDraft }: { draft: Draft; setDraft: (d: D
         </div>
       )}
       {!!draft.links.length && <div className="att-links">{draft.links.map((l, i) => <LinkCard key={i} a={{ url: l, title: '' }} onRemove={() => setDraft({ ...draft, links: draft.links.filter((_, j) => j !== i) })} />)}</div>}
-      <Adder onLink={(u) => setDraft({ ...draft, links: [...draft.links, u] })} onFiles={(f) => setDraft({ ...draft, files: [...draft.files, ...f] })} />
+      {!!draft.docs.length && <div className="att-links">{draft.docs.map((f, i) => <DocCard key={i} a={{ url: '#', title: f.name, kind: f.type.startsWith('video/') ? 'video' : 'document' }} onRemove={() => setDraft({ ...draft, docs: draft.docs.filter((_, j) => j !== i) })} />)}</div>}
+      {!!draft.notes.length && <div className="att-notes">{draft.notes.map((n, i) => <NoteCard key={i} a={{ title: n.slice(0, 80), body: n }} onRemove={() => setDraft({ ...draft, notes: draft.notes.filter((_, j) => j !== i) })} />)}</div>}
+      <Adder
+        onLink={(u) => setDraft({ ...draft, links: [...draft.links, u] })}
+        onImages={(f) => setDraft({ ...draft, files: [...draft.files, ...f] })}
+        onDocs={(f) => setDraft({ ...draft, docs: [...draft.docs, ...f] })}
+        onNote={(t) => setDraft({ ...draft, notes: [...draft.notes, t] })}
+      />
     </div>
   )
 }
@@ -150,4 +280,9 @@ export function AttachDraft({ draft, setDraft }: { draft: Draft; setDraft: (d: D
 export async function saveDraft(type: AttachEntity, id: string, draft: Draft) {
   for (const url of draft.links) await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'link', url })
   for (const f of draft.files) { const up = await uploadImage(f); await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'image', file_id: up.file_id }) }
+  for (const f of draft.docs) {
+    const up = await uploadAttachmentFile(f)
+    await api.post('/attachments', { entity_type: type, entity_id: id, kind: up.kind, file_id: up.file_id, title: up.name })
+  }
+  for (const note of draft.notes) await api.post('/attachments', { entity_type: type, entity_id: id, kind: 'text', body: note, title: note.slice(0, 80) })
 }

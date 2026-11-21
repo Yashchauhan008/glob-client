@@ -28,7 +28,7 @@ export function QuickProvider({ children }: { children: ReactNode }) {
     mutationFn: async ({ path, body }: { path: string; body: object }) => {
       const row = await api.post<{ id: string }>(path, body)
       const type: AttachEntity | null = path === '/ideas' ? 'idea' : path === '/questions' ? 'question' : null
-      if (type && (draft.links.length || draft.files.length)) await saveDraft(type, row.id, draft)
+      if (type && (draft.links.length || draft.files.length || draft.docs.length || draft.notes.length)) await saveDraft(type, row.id, draft)
       return row
     },
     onSuccess: done,

@@ -109,7 +109,7 @@ export default function IdeaDetail() {
       </div>
 
       <section className="panel attach-panel">
-        <h3>Links &amp; images</h3>
+        <h3>References</h3>
         <Attachments type="idea" id={data.id} />
       </section>
 
