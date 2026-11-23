@@ -206,9 +206,12 @@ function makePinOverlayClass() {
   }
 }
 
-/** A map of saved places. Hold Ctrl (⌘) and click the map to choose where a new pin goes. */
-export function PinMap({ pins, height = 420, onPick, draft }: {
-  pins: Pin[]; height?: number; onPick?: (lat: number, lng: number) => void; draft?: { lat: number; lng: number } | null
+/** A map of saved places. Hold Ctrl (⌘) and click the map to drop a new pin. Click a pin to edit it. */
+export function PinMap({ pins, height = 420, onPick, onSelect, draft }: {
+  pins: Pin[]; height?: number
+  onPick?: (lat: number, lng: number) => void
+  onSelect?: (pin: Pin) => void
+  draft?: { lat: number; lng: number } | null
 }) {
   const { ready, error } = useMaps()
   const ref = useRef<HTMLDivElement>(null)
@@ -218,6 +221,8 @@ export function PinMap({ pins, height = 420, onPick, draft }: {
   const draftRef = useRef<any>(null)
   const pick = useRef(onPick)
   pick.current = onPick
+  const select = useRef(onSelect)
+  select.current = onSelect
   const fitted = useRef('')
 
   useEffect(() => {
@@ -248,6 +253,10 @@ export function PinMap({ pins, height = 420, onPick, draft }: {
       const pos = new g.maps.LatLng(p.latitude, p.longitude)
       bounds.extend(pos)
       const m = new Marker(pos, p, () => {
+        if (select.current) {
+          select.current(p)
+          return
+        }
         const rows = [p.address, p.note].filter(Boolean).map((v) => `<div>${esc(String(v))}</div>`).join('')
         infoRef.current.setContent(
           `<div class="map-card"><b>${esc(p.title)}</b><div><em>${esc(p.tag)}</em>${p.owner_name ? ` · ${esc(p.owner_name)}` : ''}</div>${rows}` +
