@@ -12,7 +12,7 @@ import { useQuick } from '../components/quick'
 export default function Ideas() {
   const quick = useQuick()
   const { data } = useQuery({ queryKey: ['ideas'], queryFn: () => api.get<{ items: Idea[] }>('/ideas') })
-  const [view, setView] = useState<'flow' | 'list' | 'grid'>('flow')
+  const [view, setView] = useState<'flow' | 'list' | 'grid'>('grid')
   const [q, setQ] = useState('')
   const items = data?.items ?? []
   const shown = useMemo(() => items.filter((i) => (i.title + i.description).toLowerCase().includes(q.toLowerCase())), [items, q])
@@ -28,9 +28,9 @@ export default function Ideas() {
 
       <div className="with-rail">
         <div className="rail">
-          <button className={view === 'flow' ? 'on' : ''} onClick={() => setView('flow')} title="Flow"><Waypoints size={18} /></button>
-          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')} title="List"><List size={18} /></button>
           <button className={view === 'grid' ? 'on' : ''} onClick={() => setView('grid')} title="Grid"><LayoutGrid size={18} /></button>
+          <button className={view === 'list' ? 'on' : ''} onClick={() => setView('list')} title="List"><List size={18} /></button>
+          <button className={view === 'flow' ? 'on' : ''} onClick={() => setView('flow')} title="Flow"><Waypoints size={18} /></button>
         </div>
         <div className="grow">
           <div className="stats">
@@ -43,18 +43,20 @@ export default function Ideas() {
           {!shown.length && <Empty>{items.length ? 'No idea matches.' : 'No ideas yet — drop the first one with the lilac button below.'}</Empty>}
           <div className={'ideas ' + view}>
             {shown.map((i) => (
-              <Link key={i.id} to={`/ideas/${i.id}`} className={'idea status-' + i.status} style={{ '--c': IDEA_COLOR[i.status] } as React.CSSProperties}>
-                {i.cover && <img className="idea-cover" src={fileUrl(i.cover)} alt="" loading="lazy" />}
-                <h3>{i.title}</h3>
-                <p>{plain(i.description) || 'No description yet.'}</p>
-                <Meter value={i.feasibility} votes={i.votes} />
-                <div className="idea-foot">
-                  <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
-                  <span className="chip"><MessageCircle size={13} className="ico" /> {i.thoughts}</span>
-                  {!!i.problems && <span className="chip"><TriangleAlert size={13} className="ico" /> {i.problems}</span>}
-                  {!!i.conclusions && <span className="chip"><CircleCheck size={13} className="ico" /> {i.conclusions}</span>}
-                  {!!i.attachments && <span className="chip"><Paperclip size={13} className="ico" /> {i.attachments}</span>}
-                  <Avatars names={i.contributors} />
+              <Link key={i.id} to={`/ideas/${i.id}`} className={'idea status-' + i.status + (i.cover ? ' has-cover' : '')} style={{ '--c': IDEA_COLOR[i.status] } as React.CSSProperties}>
+                {i.cover && <span className="idea-cover"><img src={fileUrl(i.cover)} alt="" loading="lazy" /></span>}
+                <div className="idea-body">
+                  <h3>{i.title}</h3>
+                  <p>{plain(i.description) || 'No description yet.'}</p>
+                  <Meter value={i.feasibility} votes={i.votes} />
+                  <div className="idea-foot">
+                    <Pill color="rgba(255,255,255,.75)">{i.status}</Pill>
+                    <span className="chip"><MessageCircle size={13} className="ico" /> {i.thoughts}</span>
+                    {!!i.problems && <span className="chip"><TriangleAlert size={13} className="ico" /> {i.problems}</span>}
+                    {!!i.conclusions && <span className="chip"><CircleCheck size={13} className="ico" /> {i.conclusions}</span>}
+                    {!!i.attachments && <span className="chip"><Paperclip size={13} className="ico" /> {i.attachments}</span>}
+                    <Avatars names={i.contributors} />
+                  </div>
                 </div>
               </Link>
             ))}

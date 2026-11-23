@@ -67,7 +67,8 @@ export const DARK_MAP = [
   { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3a42' }] },
 ]
 
-export function LeadMap({ leads, height = 420, enlargeTo, overlay }: { leads: Lead[]; height?: number; enlargeTo?: string; overlay?: ReactNode }) {
+/** `free` skips the Ctrl/⌘ lock — use on full map pages. Embedded maps keep the lock so page scroll still works. */
+export function LeadMap({ leads, height = 420, enlargeTo, overlay, free }: { leads: Lead[]; height?: number; enlargeTo?: string; overlay?: ReactNode; free?: boolean }) {
   const { ready, error } = useMaps()
   const ref = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
@@ -79,9 +80,10 @@ export function LeadMap({ leads, height = 420, enlargeTo, overlay }: { leads: Le
     const g = (window as any).google
     mapRef.current = new g.maps.Map(ref.current, {
       center: { lat: home.lat, lng: home.lng }, zoom: home.zoom, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+      gestureHandling: free ? 'greedy' : 'cooperative',
     })
     infoRef.current = new g.maps.InfoWindow()
-  }, [ready])
+  }, [ready, free])
 
   // follow the app theme
   useEffect(() => {
@@ -116,24 +118,25 @@ export function LeadMap({ leads, height = 420, enlargeTo, overlay }: { leads: Le
     else { map.setCenter({ lat: home.lat, lng: home.lng }); map.setZoom(home.zoom) }
   }, [ready, leads])
 
-  // the map only reacts while Ctrl/Cmd is held, so scrolling the page never gets stuck on it
+  // embedded maps only react while Ctrl/Cmd is held, so scrolling the page never gets stuck
   const [ctrl, setCtrl] = useState(false)
   const [hover, setHover] = useState(false)
   useEffect(() => {
+    if (free) return
     const on = (e: KeyboardEvent) => setCtrl(e.ctrlKey || e.metaKey)
     const off = () => setCtrl(false)
     window.addEventListener('keydown', on)
     window.addEventListener('keyup', on)
     window.addEventListener('blur', off)
     return () => { window.removeEventListener('keydown', on); window.removeEventListener('keyup', on); window.removeEventListener('blur', off) }
-  }, [])
+  }, [free])
 
   if (error) return <div className="map-box notice" style={{ height }}>{error}</div>
   return (
     <div className="map-box" style={{ height }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
       {!ready && <div className="notice abs">Loading map…</div>}
-      {ready && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to use the map</span>}</div>}
+      {ready && !free && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to use the map</span>}</div>}
       {enlargeTo && (
         <Link to={enlargeTo} className="map-enlarge" title="Open full map" aria-label="Open full map">
           <Maximize2 size={16} />
@@ -206,12 +209,13 @@ function makePinOverlayClass() {
   }
 }
 
-/** A map of saved places. Hold Ctrl (⌘) and click the map to drop a new pin. Click a pin to edit it. */
-export function PinMap({ pins, height = 420, onPick, onSelect, draft }: {
+/** A map of saved places. Click a pin to edit it. Ctrl/⌘-click empty map to drop a new one when `free`. */
+export function PinMap({ pins, height = 420, onPick, onSelect, draft, free }: {
   pins: Pin[]; height?: number
   onPick?: (lat: number, lng: number) => void
   onSelect?: (pin: Pin) => void
   draft?: { lat: number; lng: number } | null
+  free?: boolean
 }) {
   const { ready, error } = useMaps()
   const ref = useRef<HTMLDivElement>(null)
@@ -223,6 +227,8 @@ export function PinMap({ pins, height = 420, onPick, onSelect, draft }: {
   pick.current = onPick
   const select = useRef(onSelect)
   select.current = onSelect
+  const freeRef = useRef(!!free)
+  freeRef.current = !!free
   const fitted = useRef('')
 
   useEffect(() => {
@@ -230,10 +236,19 @@ export function PinMap({ pins, height = 420, onPick, onSelect, draft }: {
     const g = (window as any).google
     mapRef.current = new g.maps.Map(ref.current, {
       center: { lat: home.lat, lng: home.lng }, zoom: home.zoom, disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+      gestureHandling: free ? 'greedy' : 'cooperative',
     })
     infoRef.current = new g.maps.InfoWindow()
-    mapRef.current.addListener('click', (e: any) => pick.current?.(e.latLng.lat(), e.latLng.lng()))
-  }, [ready])
+    mapRef.current.addListener('click', (e: any) => {
+      if (!pick.current || !e.latLng) return
+      // free maps pan/zoom anytime; still require Ctrl/⌘ to drop a pin so casual clicks don’t open the form
+      if (freeRef.current) {
+        const de = e.domEvent as MouseEvent | undefined
+        if (!(de?.ctrlKey || de?.metaKey)) return
+      }
+      pick.current(e.latLng.lat(), e.latLng.lng())
+    })
+  }, [ready, free])
 
   useEffect(() => {
     const apply = () => mapRef.current?.setOptions({ styles: document.documentElement.dataset.theme === 'dark' ? DARK_MAP : [] })
@@ -289,20 +304,21 @@ export function PinMap({ pins, height = 420, onPick, onSelect, draft }: {
   const [ctrl, setCtrl] = useState(false)
   const [hover, setHover] = useState(false)
   useEffect(() => {
+    if (free) return
     const on = (e: KeyboardEvent) => setCtrl(e.ctrlKey || e.metaKey)
     const off = () => setCtrl(false)
     window.addEventListener('keydown', on)
     window.addEventListener('keyup', on)
     window.addEventListener('blur', off)
     return () => { window.removeEventListener('keydown', on); window.removeEventListener('keyup', on); window.removeEventListener('blur', off) }
-  }, [])
+  }, [free])
 
   if (error) return <div className="map-box notice" style={{ height }}>{error}</div>
   return (
     <div className="map-box" style={{ height }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
       {!ready && <div className="notice abs">Loading map…</div>}
-      {ready && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to move the map or drop a pin</span>}</div>}
+      {ready && !free && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to move the map or drop a pin</span>}</div>}
     </div>
   )
 }

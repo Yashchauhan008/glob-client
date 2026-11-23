@@ -54,6 +54,7 @@ export default function PinsPanel({ base, height = 440 }: { base: string; height
       <PinMap
         pins={shown}
         height={height}
+        free
         onSelect={(p) => setForm({ pin: p })}
         onPick={(lat, lng) => setForm({ spot: { lat, lng } })}
       />

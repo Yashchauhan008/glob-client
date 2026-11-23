@@ -61,7 +61,7 @@ export default function Leads() {
 
       {view === 'map' && (
         <>
-          <LeadMap leads={items} height={560} />
+          <LeadMap leads={items} height={560} free />
           <p className="muted">{items.filter((l) => l.latitude != null).length} of {items.length} leads have a location.</p>
         </>
       )}

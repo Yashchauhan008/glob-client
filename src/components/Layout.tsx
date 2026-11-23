@@ -8,6 +8,7 @@ import { CONTENT_ID, colorFor, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
 import Discussion from './Discussion'
+import EventsPanel from './EventsPanel'
 import { useMedia } from '../media'
 import ChatBox from './ChatBox'
 import { Face } from './Avatar'
@@ -162,6 +163,7 @@ export default function Layout() {
             {!boardMatch && ideaMatch && wide && (
               <aside className="events-panel idea-side"><h2>Chat <span className="h-ico"><MessageCircle size={26} strokeWidth={2.2} /></span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
             )}
+            {!boardMatch && !ideaMatch && pathname === '/home' && wide && <EventsPanel />}
           </div>
           <Dock />
         </div>

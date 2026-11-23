@@ -63,7 +63,7 @@ export default function MapPage() {
               })}
             </div>
           </div>
-          <LeadMap leads={shown} height={560} />
+          <LeadMap leads={shown} height={560} free />
           <p className="muted">{located.length} of {items.length} leads have a location{stage ? ` · showing ${shown.length} in ${stage}` : ''}.</p>
         </>
       )}
