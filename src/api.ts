@@ -62,16 +62,6 @@ export const api = {
   text: (p: string) => request<string>(p),
 }
 
-export async function downloadCsv(entity: string) {
-  const csv = await api.text(`/csv/export/${entity}`)
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${entity}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 export async function uploadImage(file: File): Promise<{ file_id: string; url: string }> {
   const body = new FormData()
   body.append('file', file)

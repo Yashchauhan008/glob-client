@@ -56,7 +56,7 @@ function Members({ team }: { team: TeamInfo }) {
           {d?.pending.map((p) => (
             <li key={p.email}>
               <span className="inv-mail">{p.email}</span><span className="chip wait">Invited{p.role === 'owner' ? ' as owner' : ''}</span>
-              <button title="Withdraw invitation" disabled={dropInvite.isPending} onClick={() => dropInvite.mutate(p.email)}><UserMinus size={15} /></button>
+              <button title="Withdraw invitation" disabled={dropInvite.isPending} onClick={() => { if (confirm(`Withdraw the invitation for ${p.email}?`)) dropInvite.mutate(p.email) }}><UserMinus size={15} /></button>
             </li>
           ))}
           {!d?.members.length && !d?.pending.length && <li><span className="inv-mail muted">No one in this team yet. Add people above.</span></li>}

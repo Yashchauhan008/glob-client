@@ -74,7 +74,7 @@ function IdeaTodos({ ideaId }: { ideaId: string }) {
                 {t.due_date && <span className={!t.done && t.due_date < today ? 'late' : ''}>{t.due_date < today && !t.done ? 'Overdue · ' : ''}{dueLabel(t.due_date)}</span>}
               </small>
             </div>
-            <button className="tdel" aria-label="Delete to-do" onClick={() => del.mutate(t.id)}><Trash2 size={13} /></button>
+            <button className="tdel" aria-label="Delete to-do" onClick={() => { if (confirm(`Delete “${t.title}”?`)) del.mutate(t.id) }}><Trash2 size={13} /></button>
           </li>
         ))}
       </ul>
@@ -111,7 +111,7 @@ export default function IdeaBoard({ ideaId }: { ideaId: string }) {
                 <div className="pcard-top">
                   <span className="pcard-n">Problem {i + 1}</span>
                   <span className="pcard-state">{sols.length ? `${sols.length} solution${sols.length > 1 ? 's' : ''}` : 'Needs a solution'}</span>
-                  <button className="pcard-x" aria-label="Remove problem mark" title="Back to a plain message" onClick={() => mark.mutate({ id: p.id, tag: null })}><X size={14} /></button>
+                  <button className="pcard-x" aria-label="Remove problem mark" title="Back to a plain message" onClick={() => { if (confirm('Remove this problem mark?')) mark.mutate({ id: p.id, tag: null }) }}><X size={14} /></button>
                 </div>
                 <p className="pcard-text">{p.body}</p>
                 <Who m={p} />
@@ -123,7 +123,7 @@ export default function IdeaBoard({ ideaId }: { ideaId: string }) {
                       <div className="opt-body"><p>{s.body}</p><Who m={s} /></div>
                       <div className="opt-act">
                         <button title="Adopt as a conclusion" aria-label="Adopt as a conclusion" onClick={() => mark.mutate({ id: s.id, tag: 'conclusion' })}><Sparkles size={13} /></button>
-                        <button title="Remove" aria-label="Remove solution" onClick={() => mark.mutate({ id: s.id, tag: null })}><X size={13} /></button>
+                        <button title="Remove" aria-label="Remove solution" onClick={() => { if (confirm('Remove this solution mark?')) mark.mutate({ id: s.id, tag: null }) }}><X size={13} /></button>
                       </div>
                     </li>
                   ))}
@@ -139,7 +139,7 @@ export default function IdeaBoard({ ideaId }: { ideaId: string }) {
               <ol className="opts">
                 {loose.map((s, j) => (
                   <li key={s.id} className="opt"><span className="opt-l">{letter(j)}</span><div className="opt-body"><p>{s.body}</p><Who m={s} /></div>
-                    <div className="opt-act"><button aria-label="Remove solution" onClick={() => mark.mutate({ id: s.id, tag: null })}><X size={13} /></button></div></li>
+                    <div className="opt-act"><button aria-label="Remove solution" onClick={() => { if (confirm('Remove this solution mark?')) mark.mutate({ id: s.id, tag: null }) }}><X size={13} /></button></div></li>
                 ))}
               </ol>
             </article>
@@ -161,7 +161,7 @@ export default function IdeaBoard({ ideaId }: { ideaId: string }) {
             <li key={c.id}>
               <span className="clist-n">{i + 1}</span>
               <div className="clist-body"><p>{c.body}</p><small>{c.marked_by_name ?? c.owner_name} · {when(c.marked_at ?? c.created_at)}</small></div>
-              <button aria-label="Remove conclusion" title="Back to a plain message" onClick={() => mark.mutate({ id: c.id, tag: null })}><X size={13} /></button>
+              <button aria-label="Remove conclusion" title="Back to a plain message" onClick={() => { if (confirm('Remove this conclusion mark?')) mark.mutate({ id: c.id, tag: null }) }}><X size={13} /></button>
             </li>
           ))}
         </ol>

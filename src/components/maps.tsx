@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { Maximize2 } from 'lucide-react'
 import type { Lead } from '../types'
 import { STAGE_COLOR } from '../types'
 
@@ -65,7 +67,7 @@ export const DARK_MAP = [
   { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3a42' }] },
 ]
 
-export function LeadMap({ leads, height = 420 }: { leads: Lead[]; height?: number }) {
+export function LeadMap({ leads, height = 420, enlargeTo, overlay }: { leads: Lead[]; height?: number; enlargeTo?: string; overlay?: ReactNode }) {
   const { ready, error } = useMaps()
   const ref = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
@@ -132,6 +134,12 @@ export function LeadMap({ leads, height = 420 }: { leads: Lead[]; height?: numbe
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
       {!ready && <div className="notice abs">Loading map…</div>}
       {ready && !ctrl && <div className="map-lock">{hover && <span>Hold Ctrl (⌘ on Mac) to use the map</span>}</div>}
+      {enlargeTo && (
+        <Link to={enlargeTo} className="map-enlarge" title="Open full map" aria-label="Open full map">
+          <Maximize2 size={16} />
+        </Link>
+      )}
+      {overlay}
     </div>
   )
 }

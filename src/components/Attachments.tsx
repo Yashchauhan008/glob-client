@@ -1,6 +1,6 @@
-import { useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, FileText, ImagePlus, Link2, Paperclip, StickyNote, X } from 'lucide-react'
+import { Download, ExternalLink, Eye, FileText, ImagePlus, Link2, Paperclip, StickyNote, X } from 'lucide-react'
 import { api, uploadAttachmentFile, uploadImage, uploadThumbnail } from '../api'
 import { Modal } from './ui'
 import { faviconUrl, fileUrl } from '../files'
@@ -51,6 +51,70 @@ function fileLabel(name: string) {
   return ext.slice(0, 4)
 }
 
+function extOf(name: string) {
+  const m = name.toLowerCase().match(/\.([a-z0-9]+)(?:\?|$)/)
+  return m?.[1] ?? ''
+}
+
+const isStoredFile = (url: string) => /\/files\//.test(url)
+type Preview = { url: string; title: string; kind: AttachKind }
+
+function FilePreview({ preview, onClose }: { preview: Preview; onClose: () => void }) {
+  const src = fileUrl(preview.url) || hrefOf(preview.url)
+  const name = preview.title || 'File'
+  const ext = extOf(name) || extOf(src)
+  const [text, setText] = useState<string | null>(null)
+  const [textErr, setTextErr] = useState('')
+  const image = preview.kind === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)
+  const video = preview.kind === 'video' || ['mp4', 'webm', 'mov', 'm4v', 'ogg'].includes(ext)
+  const pdf = ext === 'pdf'
+  const office = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp'].includes(ext)
+  const plain = ['txt', 'csv', 'json', 'md', 'log', 'tsv'].includes(ext)
+  const known = image || video || pdf || office || plain
+
+  useEffect(() => {
+    if (!plain) return
+    let alive = true
+    fetch(src)
+      .then((r) => { if (!r.ok) throw new Error('Could not load the file'); return r.text() })
+      .then((t) => { if (alive) setText(t) })
+      .catch((e: Error) => { if (alive) setTextErr(e.message) })
+    return () => { alive = false }
+  }, [plain, src])
+
+  return (
+    <Modal title={name} onClose={onClose}>
+      <div className="att-preview">
+        {image && <img className="att-full" src={src} alt={name} />}
+        {video && <video className="att-preview-media" src={src} controls autoPlay playsInline />}
+        {pdf && <iframe className="att-preview-frame" title={name} src={src} />}
+        {office && (
+          <iframe
+            className="att-preview-frame"
+            title={name}
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(src)}`}
+          />
+        )}
+        {plain && (
+          textErr ? <p className="form-err">{textErr}</p>
+            : text == null ? <p className="muted">Loading…</p>
+              : <pre className="att-preview-text">{text}</pre>
+        )}
+        {!known && (
+          <div className="att-preview-empty">
+            <FileText size={36} />
+            <p>No in-browser preview for this file type.</p>
+          </div>
+        )}
+        <div className="att-preview-actions">
+          <a className="btn small" href={src} target="_blank" rel="noreferrer noopener"><ExternalLink size={14} /> Open</a>
+          <a className="btn ghost small" href={src} download={name}><Download size={14} /> Download</a>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' | 'title' | 'thumb_url'>; onRemove?: () => void; onThumb?: (f: File) => void }) {
   const d = describeLink(a.url)
   const pick = useRef<HTMLInputElement>(null)
@@ -76,21 +140,17 @@ export function LinkCard({ a, onRemove, onThumb }: { a: Pick<Attachment, 'url' |
   )
 }
 
-function DocCard({ a, onRemove }: { a: Pick<Attachment, 'url' | 'title' | 'kind'>; onRemove?: () => void }) {
+function DocCard({ a, onRemove, onPreview }: { a: Pick<Attachment, 'url' | 'title' | 'kind'>; onRemove?: () => void; onPreview?: () => void }) {
   const name = a.title || (a.kind === 'video' ? 'Video' : 'Document')
   const href = a.url && a.url !== '#' ? (fileUrl(a.url) || hrefOf(a.url)) : ''
-  const inner = (
-    <>
-      <span className="att-badge" style={{ background: a.kind === 'video' ? '#ff2d2d' : '#3a3a3e' }}>{fileLabel(name)}</span>
-      <span className="att-text"><b>{name}</b><small>{a.kind === 'video' ? 'Video file' : 'Document'}</small></span>
-      {href ? <ExternalLink size={15} /> : null}
-    </>
-  )
+  const open = () => { if (onPreview && href) onPreview(); else if (href) window.open(href, '_blank', 'noopener,noreferrer') }
   return (
     <div className="att-link">
-      {href
-        ? <a href={href} target="_blank" rel="noreferrer noopener">{inner}</a>
-        : <div className="att-link-static">{inner}</div>}
+      <button type="button" className="att-link-btn" onClick={open} disabled={!href}>
+        <span className="att-badge" style={{ background: a.kind === 'video' ? '#ff2d2d' : '#3a3a3e' }}>{fileLabel(name)}</span>
+        <span className="att-text"><b>{name}</b><small>{a.kind === 'video' ? 'Video file' : 'Document'} · click to preview</small></span>
+        <Eye size={15} />
+      </button>
       {onRemove && <button type="button" className="att-x" aria-label="Remove" onClick={onRemove}><X size={14} /></button>}
     </div>
   )
@@ -179,7 +239,7 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
     queryFn: () => api.get<{ items: Attachment[] }>(`/attachments?type=${type}&id=${id}`),
     refetchInterval: (query) => query.state.data?.items.some((a) => (a.kind === 'link' || a.kind === 'video') && !a.thumb_url && a.created_at && Date.now() - new Date(a.created_at).getTime() < 25000) ? 2500 : false,
   })
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<Preview | null>(null)
   const [err, setErr] = useState('')
   const refresh = () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ['ideas'] }) }
 
@@ -211,13 +271,15 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
   })
   const setThumb = useMutation({ mutationFn: ({ id: aid, file }: { id: string; file: File }) => uploadThumbnail(aid, file), onSuccess: refresh, onError: (e: Error) => setErr(e.message) })
   const del = useMutation({ mutationFn: (aid: string) => api.del(`/attachments/${aid}`), onSuccess: refresh })
+  const remove = (id: string, label: string) => { if (confirm(`Remove “${label}”?`)) del.mutate(id) }
 
   const items = q.data?.items ?? []
   const images = items.filter((a) => a.kind === 'image')
-  const links = items.filter((a) => a.kind === 'link' || a.kind === 'video')
-  const docs = items.filter((a) => a.kind === 'document')
+  const links = items.filter((a) => a.kind === 'link' || (a.kind === 'video' && !isStoredFile(a.url)))
+  const docs = items.filter((a) => a.kind === 'document' || (a.kind === 'video' && isStoredFile(a.url)))
   const notes = items.filter((a) => a.kind === 'text')
   const busy = addLink.isPending || addImages.isPending || addDocs.isPending || addNote.isPending
+  const previewOf = (a: Attachment): Preview => ({ url: a.url, title: a.title || (a.kind === 'video' ? 'Video' : 'Document'), kind: a.kind })
 
   return (
     <div className="att">
@@ -225,15 +287,15 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
         <div className="att-grid">
           {images.map((a) => (
             <div key={a.id} className="att-thumb">
-              <button type="button" onClick={() => setOpen(fileUrl(a.url))} aria-label="Open image"><img src={fileUrl(a.url)} alt="" loading="lazy" /></button>
-              {editable && <button type="button" className="att-x" aria-label="Remove" onClick={() => del.mutate(a.id)}><X size={14} /></button>}
+              <button type="button" onClick={() => setOpen(previewOf(a))} aria-label="Open image"><img src={fileUrl(a.url)} alt="" loading="lazy" /></button>
+              {editable && <button type="button" className="att-x" aria-label="Remove" onClick={() => remove(a.id, a.title || 'this image')}><X size={14} /></button>}
             </div>
           ))}
         </div>
       )}
-      {!!links.length && <div className="att-links">{links.map((a) => <LinkCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} onThumb={editable ? (file) => setThumb.mutate({ id: a.id, file }) : undefined} />)}</div>}
-      {!!docs.length && <div className="att-links">{docs.map((a) => <DocCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} />)}</div>}
-      {!!notes.length && <div className="att-notes">{notes.map((a) => <NoteCard key={a.id} a={a} onRemove={editable ? () => del.mutate(a.id) : undefined} />)}</div>}
+      {!!links.length && <div className="att-links">{links.map((a) => <LinkCard key={a.id} a={a} onRemove={editable ? () => remove(a.id, a.title || a.url) : undefined} onThumb={editable ? (file) => setThumb.mutate({ id: a.id, file }) : undefined} />)}</div>}
+      {!!docs.length && <div className="att-links">{docs.map((a) => <DocCard key={a.id} a={a} onPreview={() => setOpen(previewOf(a))} onRemove={editable ? () => remove(a.id, a.title || 'this file') : undefined} />)}</div>}
+      {!!notes.length && <div className="att-notes">{notes.map((a) => <NoteCard key={a.id} a={a} onRemove={editable ? () => remove(a.id, a.title || 'this note') : undefined} />)}</div>}
       {!items.length && !q.isLoading && <p className="muted">Nothing referenced yet.</p>}
       {editable && (
         <Adder
@@ -246,7 +308,7 @@ export default function Attachments({ type, id, editable = true }: { type: Attac
       )}
       {busy && <small className="muted">Saving…</small>}
       {err && <div className="form-err">{err}</div>}
-      {open && <Modal title="" onClose={() => setOpen(null)}><img className="att-full" src={open} alt="" /><a className="link" href={open} target="_blank" rel="noreferrer">Open original</a></Modal>}
+      {open && <FilePreview preview={open} onClose={() => setOpen(null)} />}
     </div>
   )
 }

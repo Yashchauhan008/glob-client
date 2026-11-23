@@ -32,7 +32,7 @@ export const ALERT_TIP: Record<keyof Alerts, (n: number) => string> = {
   ideas: (n) => `${s(n, 'idea', 'ideas')} waiting for your rating`,
   qa: (n) => `${s(n, 'open question', 'open questions')} you haven't answered`,
   calendar: (n) => `${s(n, 'event', 'events')} in the next 24 hours`,
-  tasks: (n) => `${s(n, 'task', 'tasks')} due today or overdue`,
+  tasks: (n) => `${s(n, 'open task or follow-up', 'open tasks and follow-ups')} need attention`,
   crm: (n) => `${s(n, 'lead follow-up', 'lead follow-ups')} due`,
   products: (n) => `${s(n, 'product', 'products')} down`,
   activity: (n) => `${n} new ${n === 1 ? 'update' : 'updates'} since you last looked`,

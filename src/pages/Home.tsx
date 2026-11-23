@@ -94,7 +94,7 @@ export default function Home() {
           <div className="mini-stages">{STAGES.map((s) => <Link to="/leads" key={s} style={{ background: STAGE_COLOR[s] }}><b>{leadCount(s)}</b><span>{s}</span></Link>)}</div>
         </section>
       </div>
-      <LeadMap leads={data.map_leads} height={260} />
+      <LeadMap leads={data.map_leads} height={260} enlargeTo="/map?view=crm" />
     </>
   )
 }

@@ -7,7 +7,6 @@ import { ALERT_KEY, ALERT_TIP, useAlerts } from '../alerts'
 import { CONTENT_ID, colorFor, usePresence } from '../presence'
 import Logo from './Logo'
 import Cursors from './Cursors'
-import EventsPanel from './EventsPanel'
 import Discussion from './Discussion'
 import { useMedia } from '../media'
 import ChatBox from './ChatBox'
@@ -160,9 +159,9 @@ export default function Layout() {
                 {!boardMatch && <Cursors />}
               </div>
             </main>
-            {boardMatch ? null : ideaMatch && wide ? (
+            {!boardMatch && ideaMatch && wide && (
               <aside className="events-panel idea-side"><h2>Chat <span className="h-ico"><MessageCircle size={26} strokeWidth={2.2} /></span></h2><Discussion key={ideaMatch.params.id} ideaId={ideaMatch.params.id!} /></aside>
-            ) : <EventsPanel />}
+            )}
           </div>
           <Dock />
         </div>

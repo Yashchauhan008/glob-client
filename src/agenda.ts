@@ -4,6 +4,7 @@ import { api } from './api'
 export type AgendaItem = {
   key: string; type: 'event' | 'todo' | 'followup'; id: string; title: string; kind: string
   when: Date; hasTime: boolean; end?: Date; notes?: string; who?: string; link?: string; done?: boolean
+  idea_id?: string | null
 }
 
 type Ev = { id: string; title: string; kind: string; starts_at: string; ends_at: string | null; notes: string; owner_name: string; idea_id: string | null; lead_id: string | null }
@@ -21,7 +22,7 @@ export function useAgenda(from: Date, to: Date) {
       const items: AgendaItem[] = []
       ev.items.forEach((e) => items.push({
         key: 'e' + e.id, type: 'event', id: e.id, title: e.title, kind: e.kind, when: new Date(e.starts_at), hasTime: true,
-        end: e.ends_at ? new Date(e.ends_at) : undefined, notes: e.notes, who: e.owner_name,
+        end: e.ends_at ? new Date(e.ends_at) : undefined, notes: e.notes, who: e.owner_name, idea_id: e.idea_id,
         link: e.idea_id ? `/ideas/${e.idea_id}` : e.lead_id ? `/leads/${e.lead_id}` : undefined,
       }))
       td.items.filter((t) => t.due_date).forEach((t) => {

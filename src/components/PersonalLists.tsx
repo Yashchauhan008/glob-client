@@ -69,7 +69,7 @@ export function PersonalTasks() {
               <input type="checkbox" checked={t.done} onChange={() => tick.mutate(t)} aria-label={`Mark “${t.title}” ${t.done ? 'not done' : 'done'}`} />
               <span className="ps-main"><b>{t.title}</b></span>
               {t.due_date && <Pill color={!t.done && t.due_date.slice(0, 10) <= today ? '#f9d2d2' : '#ecece6'}>{t.due_date.slice(0, 10)}</Pill>}
-              <button className="icon-btn danger" aria-label={`Delete ${t.title}`} onClick={() => del.mutate(t.id)}><Trash2 size={14} /></button>
+              <button className="icon-btn danger" aria-label={`Delete ${t.title}`} onClick={() => { if (confirm(`Delete “${t.title}”?`)) del.mutate(t.id) }}><Trash2 size={14} /></button>
             </li>
           ))}
         </ul>

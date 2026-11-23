@@ -21,7 +21,7 @@ export function QuickProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
   const ideas = useQuery({ queryKey: ['ideas'], queryFn: () => api.get<{ items: Idea[] }>('/ideas'), enabled: !!state })
   const done = () => {
-    ['ideas', 'idea', 'questions', 'todos', 'agenda', 'events', 'leads', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }))
+    ['ideas', 'idea', 'questions', 'todos', 'agenda', 'events', 'leads', 'dashboard', 'alerts'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }))
     setState(null); setDraft(emptyDraft)
   }
   const create = useMutation({

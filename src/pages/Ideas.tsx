@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CircleCheck, LayoutGrid, Lightbulb, List, MessageCircle, Paperclip, PartyPopper, Search, TriangleAlert, Waypoints } from 'lucide-react'
 import { api } from '../api'
 import { IDEA_COLOR, type Idea } from '../types'
-import { CsvTools, Empty, Pill } from '../components/ui'
+import { Empty, Pill } from '../components/ui'
 import Avatars, { Meter } from '../components/Avatars'
 import { useQuick } from '../components/quick'
 
@@ -37,7 +37,7 @@ export default function Ideas() {
             <div className="stat" style={{ '--c': '#d3e9f8' } as React.CSSProperties}><b>{items.length}</b><span>Total</span></div>
             <div className="stat" style={{ '--c': '#d3f2cc' } as React.CSSProperties}><b>{shipped}</b><span>Shipped <PartyPopper size={14} className="ico" /></span></div>
             <div className="stat dashed"><b>{thinking}</b><span>Being thought</span></div>
-            <div className="stat-actions"><CsvTools entity="ideas" importable invalidate={['ideas']} /><button className="btn" onClick={() => quick('idea')}>+ New idea</button></div>
+            <div className="stat-actions"><button className="btn" onClick={() => quick('idea')}>+ New idea</button></div>
           </div>
 
           {!shown.length && <Empty>{items.length ? 'No idea matches.' : 'No ideas yet — drop the first one with the lilac button below.'}</Empty>}

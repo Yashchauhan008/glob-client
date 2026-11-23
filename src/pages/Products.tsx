@@ -4,7 +4,7 @@ import { ArrowUpRight, Globe, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../api'
 import { faviconUrl, prettyUrl } from '../files'
 import { PRODUCT_COLOR, PRODUCT_STATUSES, type Idea, type Product } from '../types'
-import { CsvTools, Empty, Header, Modal } from '../components/ui'
+import { Empty, Header, Modal } from '../components/ui'
 import { Description, MarkdownField } from '../components/Markdown'
 
 function ProductForm({ product, ideas, busy, error, onSubmit }: { product?: Product; ideas: Idea[]; busy: boolean; error?: string; onSubmit: (b: object) => void }) {
@@ -48,7 +48,6 @@ export default function Products() {
   return (
     <>
       <Header title="Products">
-        <CsvTools entity="products" invalidate={['products']} />
         <button className="btn" onClick={() => { create.reset(); setOpen(true) }}>New product</button>
       </Header>
       {!items.length && <Empty>No products yet.</Empty>}

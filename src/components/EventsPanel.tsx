@@ -1,16 +1,20 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, CalendarClock, CalendarDays, CheckCircle2, Users } from 'lucide-react'
+import { Bell, CalendarClock, CalendarDays, CheckCircle2, Pencil, Users } from 'lucide-react'
 import { api } from '../api'
 import { addDays, fmtDay, fmtTime, startOfDay, useAgenda, type AgendaItem } from '../agenda'
 import { KIND_COLOR } from '../types'
 import { useQuick } from './quick'
+import EventForm from './EventForm'
 
 const ICON: Record<string, typeof Bell> = { meeting: Users, appointment: CalendarClock, task: CheckCircle2, reminder: Bell, followup: Users }
 const LABEL: Record<string, string> = { followup: 'Follow-up' }
 
 export function AgendaCard({ it, onDelete }: { it: AgendaItem; onDelete?: () => void }) {
+  const [editing, setEditing] = useState(false)
   const Icon = ICON[it.kind] ?? Bell
+  const canEdit = it.type === 'event'
   const inner = (
     <>
       <div className="ev-head"><Icon size={16} /><b>{LABEL[it.kind] ?? it.kind}</b><span>{fmtDay(it.when)}</span></div>
@@ -20,8 +24,16 @@ export function AgendaCard({ it, onDelete }: { it: AgendaItem; onDelete?: () => 
   )
   return (
     <div className="ev" style={{ background: KIND_COLOR[it.kind] }}>
-      {it.link ? <Link to={it.link} className="ev-link">{inner}</Link> : inner}
-      {onDelete && <button className="ev-x" onClick={onDelete} aria-label="Delete event">×</button>}
+      {canEdit ? (
+        <button type="button" className="ev-link ev-edit" onClick={() => setEditing(true)} aria-label={`Edit ${it.title}`}>
+          {inner}
+          <span className="ev-edit-hint"><Pencil size={12} /> Edit</span>
+        </button>
+      ) : it.link ? (
+        <Link to={it.link} className="ev-link">{inner}</Link>
+      ) : inner}
+      {onDelete && <button className="ev-x" onClick={() => { if (confirm(`Delete “${it.title}”?`)) onDelete() }} aria-label="Delete event">×</button>}
+      {editing && <EventForm event={it} onClose={() => setEditing(false)} />}
     </div>
   )
 }

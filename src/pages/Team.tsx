@@ -63,7 +63,7 @@ function Card({ m, mine, online, admin, manage }: { m: TeamMember; mine: boolean
         <i style={{ background: colorFor(m.id) }}><Face id={m.id} name={m.name} /></i>
         {online && <b className="tc-online" title="Online now" />}
         {canEdit && <button className="tc-cam" title="Change picture" disabled={busy} onClick={() => file.current?.click()}><Camera size={14} /></button>}
-        {canEdit && m.avatar_url && <button className="tc-rm" title="Remove picture" disabled={busy} onClick={() => save.mutate({ remove_avatar: true })}><X size={12} /></button>}
+        {canEdit && m.avatar_url && <button className="tc-rm" title="Remove picture" disabled={busy} onClick={() => { if (confirm('Remove this profile picture?')) save.mutate({ remove_avatar: true }) }}><X size={12} /></button>}
         <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { setErr(''); setCropping(f) } e.target.value = '' }} />
       </div>
 

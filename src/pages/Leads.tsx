@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { STAGES, STAGE_COLOR, type Lead } from '../types'
-import { CsvTools, Empty, Header, Modal, Pill, fmtDate } from '../components/ui'
+import { Empty, Header, Modal, Pill, fmtDate } from '../components/ui'
 import LeadForm from '../components/LeadForm'
 import { LeadMap } from '../components/maps'
 
@@ -21,11 +21,10 @@ export default function Leads() {
     <>
       <Header title="Leads">
         <div className="seg">{(['pipeline', 'table', 'map'] as const).map((v) => <button key={v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>{v}</button>)}</div>
-        <CsvTools entity="leads" importable invalidate={['leads']} />
         <button className="btn" onClick={() => setOpen(true)}>New lead</button>
       </Header>
 
-      {view !== 'map' && !items.length && <Empty>No leads yet. Add one or import a CSV.</Empty>}
+      {view !== 'map' && !items.length && <Empty>No leads yet. Add one to get started.</Empty>}
 
       {view === 'pipeline' && (
         <div className="pipeline">
