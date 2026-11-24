@@ -1,17 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Room, RoomEvent, Track, type Participant, type RemoteTrack } from 'livekit-client'
-import { api } from './api'
 
 export type MicMode = 'open' | 'ptt'
 type Status = 'idle' | 'connecting' | 'connected'
 
-export type LiveInfo = { active: boolean; startedAt: number | null; participants: { id: string; name: string }[]; video: boolean }
 // phones and tablets cannot capture their screen from a web page; they can still watch
 const CAN_SHARE = typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
-const NOBODY: LiveInfo = { active: false, startedAt: null, participants: [], video: false }
 
 type VoiceCtx = {
-  live: LiveInfo
   joinedAt: number | null
   status: Status
   error: string
@@ -24,7 +20,10 @@ type VoiceCtx = {
   camOn: boolean
   screenOn: boolean
   canShare: boolean
-  join: (withVideo?: boolean) => Promise<void>
+  joinWith: (conn: { url: string; token: string }, withVideo?: boolean) => Promise<void>
+  handUp: boolean
+  hands: Set<string>
+  toggleHand: () => void
   leave: () => void
   setMode: (m: MicMode) => void
   toggleMic: () => void
@@ -63,7 +62,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [micOn, setMicOn] = useState(false)
   const [camOn, setCamOn] = useState(false)
   const [screenOn, setScreenOn] = useState(false)
-  const [live, setLive] = useState<LiveInfo>(NOBODY)
+  const [handUp, setHandUp] = useState(false)
   const [joinedAt, setJoinedAt] = useState<number | null>(null)
 
   const rerender = useCallback(() => bump((n) => n + 1), [])
@@ -88,14 +87,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     roomRef.current?.disconnect()
     roomRef.current = null
     audioBox.current?.replaceChildren()
-    micWant.current = false; setStatus('idle'); setJoinedAt(null); setMicOn(false); setCamOn(false); setScreenOn(false); setSpeaking(new Set())
+    micWant.current = false; setStatus('idle'); setJoinedAt(null); setMicOn(false); setCamOn(false); setScreenOn(false); setHandUp(false); setSpeaking(new Set())
   }, [])
 
-  const join = useCallback(async (withVideo = false) => {
+  /** Join the LiveKit room of one particular call (the server hands out the address and token). */
+  const joinWith = useCallback(async (conn: { url: string; token: string }, withVideo = false) => {
     if (roomRef.current) return
     setError(''); setStatus('connecting')
     try {
-      const { url, token } = await api.get<{ url: string; token: string }>('/voice/token')
+      const { url, token } = conn
       const room = new Room({ adaptiveStream: true, dynacast: true, audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
       roomRef.current = room
       room
@@ -112,6 +112,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         .on(RoomEvent.Reconnected, () => setError(''))
         .on(RoomEvent.ParticipantConnected, rerender)
         .on(RoomEvent.ParticipantDisconnected, rerender)
+        .on(RoomEvent.ParticipantAttributesChanged, rerender)
         .on(RoomEvent.TrackMuted, rerender)
         .on(RoomEvent.TrackUnmuted, rerender)
         .on(RoomEvent.LocalTrackPublished, rerender)
@@ -155,6 +156,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (!(e instanceof Error && /permission|denied|notallowed|abort/i.test(e.name + e.message))) setError('Could not share the screen.')
     })
   }, [])
+  const toggleHand = useCallback(() => {
+    const room = roomRef.current
+    if (!room) return
+    const on = room.localParticipant.attributes?.hand !== '1'
+    setHandUp(on)
+    void room.localParticipant.setAttributes({ hand: on ? '1' : '' }).catch(() => setHandUp(!on))
+  }, [])
   const pttDown = useCallback(() => { if (modeRef.current === 'ptt') setMic(true) }, [setMic])
   const pttUp = useCallback(() => { if (modeRef.current === 'ptt') setMic(false) }, [setMic])
 
@@ -174,22 +182,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t)
   }, [error])
 
-  useEffect(() => {
-    let stop = false
-    const load = () => api.get<LiveInfo>('/voice/status').then((r) => { if (!stop) setLive(r) }).catch(() => {})
-    load()
-    const i = setInterval(() => { if (!document.hidden) load() }, 6000)
-    return () => { stop = true; clearInterval(i) }
-  }, [])
-
   useEffect(() => () => { roomRef.current?.disconnect() }, [])
 
   const value = useMemo<VoiceCtx>(() => {
     const room = roomRef.current
     const participants = room ? [room.localParticipant, ...room.remoteParticipants.values()] : []
-    return { live, joinedAt, status, error, room, participants, tick, speaking, mode, micOn, camOn, screenOn, canShare: CAN_SHARE, join, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp }
+    const hands = new Set(participants.filter((p) => p.attributes?.hand === '1').map((p) => p.identity))
+    return { joinedAt, status, error, room, participants, tick, speaking, mode, micOn, camOn, screenOn, handUp, hands, toggleHand, canShare: CAN_SHARE, joinWith, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp }
     // `tick` changes whenever someone joins, leaves or (un)mutes, so the participant list refreshes
-  }, [tick, live, joinedAt, status, error, speaking, mode, micOn, camOn, screenOn, join, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp])
+  }, [tick, joinedAt, status, error, speaking, mode, micOn, camOn, screenOn, handUp, toggleHand, joinWith, leave, setMode, toggleMic, toggleCam, toggleScreen, pttDown, pttUp])
   return (
     <Ctx.Provider value={value}>
       {children}

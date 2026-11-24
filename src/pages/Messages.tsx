@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Mic, Paperclip, Plus, Search, Send, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, Mic, Paperclip, Phone, Plus, Search, Send, Trash2, Users, Video, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { usePresence } from '../presence'
+import { useCalls } from '../calls'
+import { Modal } from '../components/ui'
 import {
   MessageBody, Pic, Ticks, clock, dayLabel, fromDm, mmss, newClientId, previewOf, uploadChatFile,
   type ChatMsg, type Inbox, type MsgKind, type Person,
@@ -104,6 +106,27 @@ export default function Messages() {
   )
 }
 
+function GroupCallPicker({ members, onClose, onStart }: { members: Person[]; onClose: () => void; onStart: (kind: 'voice' | 'video', ids: string[], all: boolean) => void }) {
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const everyone = members.length > 0 && sel.size === members.length
+  const toggle = (id: string) => setSel((cur) => { const n = new Set(cur); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  return (
+    <Modal title="Start a group call" onClose={onClose}>
+      <p className="muted">Choose who to ring. Anyone else in the workspace can still join from the call banner.</p>
+      <label className="pick-row"><input type="checkbox" checked={everyone} onChange={() => setSel(everyone ? new Set() : new Set(members.map((m) => m.id)))} /><b>Select everyone</b></label>
+      <div className="pick-list">
+        {members.map((m) => (
+          <label key={m.id} className="pick-row"><input type="checkbox" checked={sel.has(m.id)} onChange={() => toggle(m.id)} /><Pic id={m.id} name={m.name} url={m.avatar_url} size={30} />{m.name}</label>
+        ))}
+      </div>
+      <div className="pick-actions">
+        <button className="btn ghost" onClick={() => onStart('voice', [...sel], everyone)}><Phone size={16} /> Voice call{sel.size ? ` · ${sel.size}` : ''}</button>
+        <button className="btn" onClick={() => onStart('video', [...sel], everyone)}><Video size={16} /> Video call{sel.size ? ` · ${sel.size}` : ''}</button>
+      </div>
+    </Modal>
+  )
+}
+
 function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspaceName: string; onBack: () => void }) {
   const { user } = useAuth()
   const { socket, roster } = usePresence()
@@ -121,6 +144,11 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
   const lastTyping = useRef(0)
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const online = !!peer && roster.some((r) => r.user_id === peer.id)
+  const calls = useCalls()
+  const [picker, setPicker] = useState(false)
+  const inboxQ = useQuery({ queryKey: ['inbox'], queryFn: () => api.get<Inbox>('/chat/inbox') })
+  const busy = !!calls.mine
+  const groupCall = calls.calls.find((c) => c.scope === 'group' && !c.ended_at && c.id !== calls.mine?.id)
 
   const norm = useCallback((m: any): ChatMsg => (dm ? fromDm(m) : { ...m, status: m.user_id === user?.id ? 'sent' : undefined }), [dm, user?.id])
 
@@ -290,7 +318,27 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
         <button className="conv-back" onClick={onBack} aria-label="Back"><ArrowLeft size={20} /></button>
         {dm ? <span className={'msgr-pic' + (online ? ' on' : '')}><Pic id={peer!.id} name={peer!.name} url={peer!.avatar_url} size={42} /></span> : <i className="pic ws"><Users size={20} /></i>}
         <div><b>{title}</b><small>{typing ? 'typing…' : dm ? (online ? 'online' : 'offline') : `${roster.length ? new Set(roster.map((r) => r.user_id)).size + 1 : 1} online`}</small></div>
+        <span className="conv-call">
+          {dm ? (
+            <>
+              <button className="icon-btn" disabled={busy} title="Voice call" aria-label="Voice call" onClick={() => void calls.start({ scope: 'dm', kind: 'voice', to: peer!.id })}><Phone size={18} /></button>
+              <button className="icon-btn" disabled={busy} title="Video call" aria-label="Video call" onClick={() => void calls.start({ scope: 'dm', kind: 'video', to: peer!.id })}><Video size={18} /></button>
+            </>
+          ) : (
+            <button className="icon-btn" disabled={busy} title="Start a group call" aria-label="Start a group call" onClick={() => setPicker(true)}><Video size={18} /></button>
+          )}
+        </span>
       </header>
+      {!dm && groupCall && !busy && (
+        <div className="call-banner">
+          <Phone size={16} /><span>Group {groupCall.kind} call in progress · {groupCall.participants.filter((p) => p.state === 'joined').length} in the call</span>
+          <button className="btn small" onClick={() => void calls.join(groupCall, false)}>Join</button>
+        </div>
+      )}
+      {picker && (
+        <GroupCallPicker members={inboxQ.data?.members ?? []} onClose={() => setPicker(false)}
+          onStart={(kind, ids, all) => { setPicker(false); void calls.start({ scope: 'group', kind, user_ids: all ? undefined : ids, all }) }} />
+      )}
 
       <div className="conv-msgs">
         {more && <button className="conv-older" onClick={loadOlder}>Load earlier messages</button>}

@@ -7,7 +7,7 @@ import { usePresence } from '../presence'
 import { browserPopup } from '../messaging'
 
 type Notice = {
-  id: string; team_id: string | null; team_name: string | null; type: 'dm' | 'chat' | 'answer' | 'general'
+  id: string; team_id: string | null; team_name: string | null; type: 'dm' | 'chat' | 'answer' | 'call' | 'general'
   label: string; title: string; body: string; data: { from_id?: string; team_id?: string; question_id?: string; count?: number }
   created_at: string; read_at: string | null
 }
@@ -19,9 +19,9 @@ const ago = (d: string) => {
   if (s < 86400) return `${Math.round(s / 3600)}h`
   return `${Math.round(s / 86400)}d`
 }
-const iconOf = (t: Notice['type']) => (t === 'dm' ? <MessageCircle size={16} /> : t === 'chat' ? <Users size={16} /> : <HelpCircle size={16} />)
+const iconOf = (t: Notice['type']) => (t === 'dm' || t === 'call' ? <MessageCircle size={16} /> : t === 'chat' ? <Users size={16} /> : <HelpCircle size={16} />)
 const targetOf = (n: Notice) =>
-  n.type === 'dm' && n.data.from_id ? `/messages/${n.data.from_id}` : n.type === 'chat' ? '/messages/workspace' : n.type === 'answer' ? '/qa' : '/home'
+  (n.type === 'dm' || n.type === 'call') && n.data.from_id ? `/messages/${n.data.from_id}` : n.type === 'chat' ? '/messages/workspace' : n.type === 'answer' ? '/qa' : '/home'
 
 /** The bell in the top bar: everything that needs your attention, with a label saying where it came from. */
 export default function NotificationBell() {

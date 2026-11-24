@@ -1,7 +1,10 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { Maximize2, Minimize2, Minus, Mic, MicOff, MonitorOff, MonitorUp, Phone, PhoneOff, Video, VideoOff } from 'lucide-react'
+import { Hand, Maximize2, Minimize2, Minus, Mic, MicOff, MonitorOff, MonitorUp, Phone, PhoneOff, Video, VideoOff, X } from 'lucide-react'
 import { Track, type Participant } from 'livekit-client'
 import { useVoice } from '../voice'
+import { useCalls } from '../calls'
+import { useAuth } from '../auth'
+import { Pic } from '../messaging'
 import { colorFor } from '../presence'
 import { Face } from './Avatar'
 
@@ -31,60 +34,158 @@ function Person({ id, name, talking }: { id: string; name: string; talking: bool
   )
 }
 
-/** Bottom-left: two launch buttons, or a small pill once a call is going. */
+/** Bottom-left: only while a call is going on. Yours (with controls), or a group call you can join. */
 function Pill() {
   const v = useVoice()
+  const c = useCalls()
+  const { user } = useAuth()
   const joined = v.status === 'connected'
   const connecting = v.status === 'connecting'
-  const since = joined ? (v.live.startedAt ?? v.joinedAt) : v.live.startedAt
-  const elapsed = useElapsed(joined || v.live.active ? since : null)
+  const mine = c.mine
+  const open = c.calls.filter((x) => x.scope === 'group' && x.id !== mine?.id && x.participants.some((p) => p.state === 'joined'))
+  const other = open[0]
+  const dialling = !!mine && mine.status === 'ringing' && mine.initiator_id === user?.id && !mine.answered_at
+  const since = mine ? (mine.answered_at ?? mine.started_at) : other?.started_at
+  const elapsed = useElapsed(since ? new Date(since).getTime() : null)
 
-  if (!joined && !v.live.active) {
+  if (!mine && !other && !connecting) return c.error ? <div className="call-dock"><small className="cp-err">{c.error}</small></div> : null
+
+  if (!mine && other) {
+    const joinedPeople = other.participants.filter((p) => p.state === 'joined')
     return (
-      <div className="call-dock">
-        <button className="cd voice" disabled={connecting} onClick={() => void v.join(false)}><span><Phone size={18} /></span>{connecting ? 'Joining…' : 'Voice'}</button>
-        <button className="cd video" disabled={connecting} onClick={() => void v.join(true)}><span><Video size={18} /></span>Video</button>
-        {v.error && <small className="cp-err">{v.error}</small>}
+      <div className="call-dock pill">
+        <span className="cp-live"><i />{elapsed}</span>
+        <span className="cp-people">
+          {joinedPeople.slice(0, 4).map((p) => <Person key={p.user_id} id={p.user_id} name={p.name} talking={false} />)}
+          {joinedPeople.length > 4 && <span className="cp-more">+{joinedPeople.length - 4}</span>}
+        </span>
+        <span className="cp-label">Group {other.kind} call</span>
+        <button className="cd voice sm" disabled={connecting} title="Join with voice" onClick={() => void c.join(other, false)}><span><Phone size={16} /></span>Join</button>
+        <button className="cd video sm" disabled={connecting} title="Join with video" onClick={() => void c.join(other, true)}><span><Video size={16} /></span></button>
+        {c.error && <small className="cp-err">{c.error}</small>}
       </div>
     )
   }
 
   const people = joined
     ? v.participants.map((p) => ({ id: p.identity, name: (p.isLocal ? 'You' : p.name) || 'Guest', talking: v.speaking.has(p.identity) }))
-    : v.live.participants.map((p) => ({ id: p.id, name: p.name, talking: false }))
+    : (mine?.participants ?? []).filter((p) => p.state !== 'declined' && p.state !== 'missed').map((p) => ({ id: p.user_id, name: p.name, talking: false }))
   const shown = people.slice(0, 4)
 
   return (
     <div className="call-dock pill">
-      <span className="cp-live"><i />{elapsed}</span>
+      <span className="cp-live"><i />{dialling ? 'Calling…' : elapsed}</span>
       <span className="cp-people">
         {shown.map((p) => <Person key={p.id} {...p} />)}
         {people.length > shown.length && <span className="cp-more">+{people.length - shown.length}</span>}
       </span>
-      {joined ? (
+      {joined && (
         <>
-          <button className="cp-chip" title={v.mode === 'open' ? 'Switch to push to talk' : 'Switch to open mic'} onClick={() => v.setMode(v.mode === 'open' ? 'ptt' : 'open')}>
-            {v.mode === 'open' ? 'Open mic' : 'Push to talk'}
-          </button>
-          {v.mode === 'open'
-            ? <button className={'cp-btn' + (v.micOn ? ' on' : ' off')} title={v.micOn ? 'Mute' : 'Unmute'} onClick={v.toggleMic}>{v.micOn ? <Mic size={17} /> : <MicOff size={17} />}</button>
-            : <button className={'cp-btn ptt' + (v.micOn ? ' on' : ' off')} title="Hold to talk (or hold Space)" onPointerDown={v.pttDown} onPointerUp={v.pttUp} onPointerLeave={v.pttUp}>
-                {v.micOn ? <Mic size={17} /> : <MicOff size={17} />}<small>hold</small>
-              </button>}
+          <button className={'cp-btn' + (v.micOn ? ' on' : ' off')} title={v.micOn ? 'Mute' : 'Unmute'} onClick={v.toggleMic}>{v.micOn ? <Mic size={17} /> : <MicOff size={17} />}</button>
           <button className={'cp-btn' + (v.camOn ? ' on' : ' off')} title={v.camOn ? 'Camera off' : 'Camera on'} onClick={v.toggleCam}>{v.camOn ? <Video size={17} /> : <VideoOff size={17} />}</button>
           {v.canShare && <button className={'cp-btn' + (v.screenOn ? ' on' : ' off')} title={v.screenOn ? 'Stop sharing screen' : 'Share your screen'} onClick={v.toggleScreen}>{v.screenOn ? <MonitorOff size={17} /> : <MonitorUp size={17} />}</button>}
-          <button className="cp-btn end" title="Leave call" onClick={v.leave}><PhoneOff size={17} /></button>
-        </>
-      ) : (
-        <>
-          {v.live.video && <span className="cp-vid" title="Someone has their camera on"><Video size={14} /></span>}
-          <button className="cd voice sm" disabled={connecting} title="Join with voice" onClick={() => void v.join(false)}><span><Phone size={16} /></span>Join</button>
-          <button className="cd video sm" disabled={connecting} title="Join with video" onClick={() => void v.join(true)}><span><Video size={16} /></span></button>
+          <button className={'cp-btn' + (v.handUp ? ' hand-on' : ' off')} title={v.handUp ? 'Lower hand' : 'Raise hand'} onClick={v.toggleHand}><Hand size={17} /></button>
         </>
       )}
-      {v.error && <small className="cp-err">{v.error}</small>}
+      <button className="cp-btn end" title={dialling ? 'Cancel call' : 'Leave call'} onClick={() => void c.hangUp()}><PhoneOff size={17} /></button>
+      {(v.error || c.error) && <small className="cp-err">{v.error || c.error}</small>}
     </div>
   )
+}
+
+/** A soft coloured glow along the top of the page that swells with whoever is talking. */
+function Aurora() {
+  const v = useVoice()
+  const ref = useRef<HTMLDivElement>(null)
+  const parts = useRef<Participant[]>([])
+  parts.current = v.participants
+  const on = v.status === 'connected'
+  useEffect(() => {
+    if (!on) return
+    let raf = 0
+    let level = 0
+    const frame = () => {
+      let target = 0
+      for (const p of parts.current) target = Math.max(target, p.audioLevel || 0)
+      level += (Math.min(1, target * 2.4) - level) * 0.22
+      ref.current?.style.setProperty('--lvl', level.toFixed(3))
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [on])
+  return on ? <div ref={ref} className="aurora" aria-hidden><i /><i /><i /></div> : null
+}
+
+/** A ring tone made in the browser (no sound file needed). Browsers keep it silent until the page has been clicked once. */
+function useRing(on: boolean) {
+  useEffect(() => {
+    if (!on) return
+    let ctx: AudioContext | null = null
+    let timer: ReturnType<typeof setInterval> | undefined
+    try {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      ctx = new AC()
+      const beep = () => {
+        if (!ctx) return
+        const o = ctx.createOscillator(), g = ctx.createGain()
+        o.type = 'sine'; o.frequency.value = 480
+        g.gain.setValueAtTime(0.0001, ctx.currentTime)
+        g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.05)
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.9)
+        o.connect(g); g.connect(ctx.destination)
+        o.start(); o.stop(ctx.currentTime + 1)
+      }
+      void ctx.resume().catch(() => {})
+      beep()
+      timer = setInterval(beep, 2000)
+    } catch { /* no audio available */ }
+    return () => { clearInterval(timer); void ctx?.close().catch(() => {}) }
+  }, [on])
+}
+
+function IncomingCall() {
+  const c = useCalls()
+  const inc = c.incoming
+  useRing(!!inc)
+  if (!inc) return null
+  const label = inc.call.scope === 'group' ? `Group ${inc.call.kind} call` : `${inc.call.kind === 'video' ? 'Video' : 'Voice'} call`
+  return (
+    <div className="incoming" role="alertdialog" aria-label={`Incoming call from ${inc.from.name}`}>
+      <div className="incoming-card">
+        <span className="incoming-pulse"><Pic id={inc.from.id} name={inc.from.name} url={inc.from.avatar_url} size={84} /></span>
+        <b>{inc.from.name}</b>
+        <small>Incoming {label.toLowerCase()}…</small>
+        <div className="incoming-actions">
+          <button className="decline" onClick={() => void c.decline()} aria-label="Decline"><PhoneOff size={22} /><span>Decline</span></button>
+          <button className="accept" onClick={() => void c.answer()} aria-label="Answer">{inc.call.kind === 'video' ? <Video size={22} /> : <Phone size={22} />}<span>Answer</span></button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** "Smit raised a hand", like Meet. */
+function HandToast() {
+  const v = useVoice()
+  const [note, setNote] = useState<{ id: string; name: string } | null>(null)
+  const seen = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (v.status !== 'connected') { seen.current = new Set(); return }
+    for (const id of v.hands) {
+      if (seen.current.has(id)) continue
+      const p = v.participants.find((x) => x.identity === id)
+      if (p && !p.isLocal) setNote({ id, name: p.name || 'Someone' })
+    }
+    seen.current = new Set(v.hands)
+  }, [v.hands, v.participants, v.status])
+  useEffect(() => {
+    if (!note) return
+    const t = setTimeout(() => setNote(null), 6000)
+    return () => clearTimeout(t)
+  }, [note])
+  if (!note) return null
+  return <div className="hand-toast"><Hand size={16} /><b>{note.name}</b> raised a hand<button onClick={() => setNote(null)} aria-label="Dismiss"><X size={14} /></button></div>
 }
 
 const MAX_SMALL = 8
@@ -114,6 +215,7 @@ const PersonTile = memo(function PersonTile({ p, talking, micOn, tick }: { p: Pa
     <div className={'vp-tile' + (talking ? ' talking' : '')}>
       {track ? <video ref={ref} autoPlay playsInline muted /> : <i className="vp-av" style={{ background: colorFor(p.identity) }}><Face id={p.identity} name={p.name || '?'} /></i>}
       <span>{p.isLocal ? 'You' : p.name}{muted && <MicOff size={11} />}</span>
+      {p.attributes?.hand === '1' && <em className="vp-hand"><Hand size={14} /></em>}
     </div>
   )
 })
@@ -213,5 +315,5 @@ function VideoPopup() {
 }
 
 export default function CallPanel() {
-  return <><Pill /><VideoPopup /></>
+  return <><Aurora /><Pill /><VideoPopup /><IncomingCall /><HandToast /></>
 }

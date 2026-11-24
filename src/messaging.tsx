@@ -1,8 +1,8 @@
-import { AlertCircle, Check, CheckCheck, Clock, Download, FileText } from 'lucide-react'
+import { AlertCircle, Check, CheckCheck, Clock, Download, FileText, PhoneMissed, Phone, Video } from 'lucide-react'
 import { API_URL, authHeaders, ApiError } from './api'
 import { colorFor, initials } from './presence'
 
-export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file'
+export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'call'
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 
 export type ChatMsg = {
@@ -49,9 +49,21 @@ export const mmss = (ms?: number | null) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
+/** "missed:voice", "ended:video:125", "declined:voice", "group:video:300:4" -> a short sentence (same as the server). */
+export function callText(body: string) {
+  const [what, kind, a, b] = body.split(':')
+  const word = kind === 'video' ? 'video' : 'voice'
+  const dur = (sec?: string) => { const n = Number(sec ?? 0); return n > 0 ? ` · ${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}` : '' }
+  if (what === 'missed') return `Missed ${word} call`
+  if (what === 'declined') return `${word[0]!.toUpperCase()}${word.slice(1)} call declined`
+  if (what === 'group') return `Group ${word} call${dur(a)}${b ? ` · ${b} joined` : ''}`
+  return `${word[0]!.toUpperCase()}${word.slice(1)} call${dur(a)}`
+}
+
 /** What a chat row shows as its last line. */
 export function previewOf(m: Pick<LastMsg, 'kind' | 'body' | 'file_name' | 'duration_ms'> | null | undefined) {
   if (!m) return ''
+  if (m.kind === 'call') return `📞 ${callText(m.body)}`
   if (m.kind === 'image') return '📷 Photo'
   if (m.kind === 'video') return '🎥 Video'
   if (m.kind === 'audio') return `🎤 Voice message ${mmss(m.duration_ms)}`
@@ -95,6 +107,10 @@ export function Ticks({ status, onRetry }: { status?: MsgStatus; onRetry?: () =>
 
 /** The inside of a bubble: text, a picture, a video, a voice note or a document. */
 export function MessageBody({ m }: { m: ChatMsg }) {
+  if (m.kind === 'call') {
+    const missed = m.body.startsWith('missed') || m.body.startsWith('declined')
+    return <span className={'m-call' + (missed ? ' missed' : '')}>{missed ? <PhoneMissed size={16} /> : m.body.includes(':video') ? <Video size={16} /> : <Phone size={16} />}{callText(m.body)}</span>
+  }
   const url = m.file_url || ''
   if (m.kind === 'image' && url)
     return (

@@ -15,6 +15,7 @@ import { Face } from './Avatar'
 import { useAdmin } from '../admin'
 import { QuickProvider, useQuick } from './quick'
 import { VoiceProvider } from '../voice'
+import { CallsProvider } from '../calls'
 import TeamSwitcher from './TeamSwitcher'
 import CallPanel from './CallPanel'
 import NotificationBell from './NotificationBell'
@@ -99,6 +100,7 @@ export default function Layout() {
   return (
     <QuickProvider>
       <VoiceProvider>
+      <CallsProvider>
       <div className="stage">
         <div className="frame">
           <header className="topbar" ref={barRef}>
@@ -173,6 +175,7 @@ export default function Layout() {
         {!pathname.startsWith('/messages') && <ChatBox open={chatOpen} setOpen={setChatOpen} />}
         <CallPanel />
       </div>
+      </CallsProvider>
       </VoiceProvider>
     </QuickProvider>
   )
