@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api'
 
-export type Alerts = { ideas: number; qa: number; calendar: number; tasks: number; crm: number; products: number; activity: number }
+export type Alerts = { ideas: number; qa: number; calendar: number; tasks: number; crm: number; products: number; activity: number; chat: number }
 
 const SEEN = 'glob_activity_seen'
 const read = () => { try { return localStorage.getItem(SEEN) } catch { return null } }
@@ -24,7 +24,7 @@ export function useAlerts(pathname: string) {
 }
 
 export const ALERT_KEY: Record<string, keyof Alerts> = {
-  '/ideas': 'ideas', '/qa': 'qa', '/calendar': 'calendar', '/tasks': 'tasks', '/leads': 'crm', '/products': 'products', '/activity': 'activity',
+  '/ideas': 'ideas', '/qa': 'qa', '/messages': 'chat', '/calendar': 'calendar', '/tasks': 'tasks', '/leads': 'crm', '/products': 'products', '/activity': 'activity',
 }
 
 const s = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -35,5 +35,6 @@ export const ALERT_TIP: Record<keyof Alerts, (n: number) => string> = {
   tasks: (n) => `${s(n, 'open task or follow-up', 'open tasks and follow-ups')} need attention`,
   crm: (n) => `${s(n, 'lead follow-up', 'lead follow-ups')} due`,
   products: (n) => `${s(n, 'product', 'products')} down`,
+  chat: (n) => `${s(n, 'unread message', 'unread messages')}`,
   activity: (n) => `${n} new ${n === 1 ? 'update' : 'updates'} since you last looked`,
 }

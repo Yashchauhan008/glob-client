@@ -21,6 +21,7 @@ import AdminTeams from './pages/AdminTeams'
 import NoTeam from './pages/NoTeam'
 import MapPage from './pages/MapPage'
 import PersonalApp from './pages/PersonalApp'
+import Messages from './pages/Messages'
 
 /** Signed in: work out which team you are in before showing anything that belongs to a team. */
 function Authed() {
@@ -42,6 +43,7 @@ function Authed() {
         <Route element={<Layout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/qa" element={<QA />} />
+          <Route path="/messages/:id?" element={<Messages />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/ideas/:id" element={<IdeaDetail />} />

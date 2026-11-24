@@ -4,8 +4,9 @@ import { ChevronDown, Hand, Maximize2, Minimize2, Send, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { colorFor, initials, usePresence } from '../presence'
+import { MessageBody, type ChatMsg } from '../messaging'
 
-type Msg = { id: string; user_id: string; name: string; body: string; created_at: string }
+type Msg = ChatMsg
 
 const GROUP_GAP = 3 * 60 * 1000 // messages from one person this close together read as one burst
 const clock = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -24,7 +25,7 @@ function groupMessages(list: Msg[]): Group[] {
   return out
 }
 
-type Toast = { user_id: string; name: string; body: string; count: number; at: number }
+type Toast = { user_id: string; name: string; body: string; kind: string; count: number; at: number }
 const TOAST_MS = 5500
 
 const Dots = () => <span className="dots" aria-hidden><b /><b /><b /></span>
@@ -56,7 +57,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
   const pop = (m: Msg) => {
     setToasts((t) => {
       const cur = t.find((x) => x.user_id === m.user_id)
-      const next: Toast = { user_id: m.user_id, name: m.name, body: m.body, count: (cur?.count ?? 0) + 1, at: Date.now() }
+      const next: Toast = { user_id: m.user_id, name: m.name, body: m.body, kind: m.kind, count: (cur?.count ?? 0) + 1, at: Date.now() }
       return [...t.filter((x) => x.user_id !== m.user_id), next].slice(-3)
     })
     arm(m.user_id)
@@ -98,7 +99,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
   }
 
   const all = [...(history.data?.items ?? []), ...live].filter((m, i, a) => a.findIndex((x) => x.id === m.id) === i)
-  useEffect(() => { if (open) { setUnread(0); endRef.current?.scrollIntoView() } }, [open, all.length, typers.length])
+  useEffect(() => { if (open) { setUnread(0); endRef.current?.scrollIntoView(); socket?.emit('chat:read') } }, [open, all.length, typers.length, socket])
 
   const groups = groupMessages(all)
   const online = [...new Map(roster.map((r) => [r.user_id, r])).values()]
@@ -119,7 +120,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
             onMouseEnter={() => clearTimeout(timers.current.get(t.user_id))} onMouseLeave={() => arm(t.user_id)}>
             <button className="toast-main" onClick={() => { setOpen(true) }}>
               <i style={{ background: colorFor(t.user_id) }}>{initials(t.name)}</i>
-              <span className="toast-text"><b>{t.name}{t.count > 1 && <em>{t.count} new messages</em>}</b><span>{t.body}</span></span>
+              <span className="toast-text"><b>{t.name}{t.count > 1 && <em>{t.count} new messages</em>}</b><span>{t.body || (t.kind === 'image' ? '📷 Photo' : t.kind === 'audio' ? '🎤 Voice message' : t.kind === 'video' ? '🎥 Video' : t.kind === 'file' ? '📎 File' : '')}</span></span>
             </button>
             <button className="toast-x" aria-label="Dismiss" onClick={() => dismiss(t.user_id)}><X size={14} /></button>
           </div>
@@ -151,7 +152,7 @@ export default function ChatBox({ open, setOpen }: { open: boolean; setOpen: (v:
               <div className="mgroup-body">
                 {!mine && <i style={{ background: colorFor(g.user_id) }}>{initials(g.name)}</i>}
                 <div className="mgroup-bubbles">
-                  {g.msgs.map((m) => <p key={m.id} title={clock(m.created_at)}>{m.body}</p>)}
+                  {g.msgs.map((m) => <p key={m.id} title={clock(m.created_at)}><MessageBody m={m} /></p>)}
                 </div>
               </div>
             </div>

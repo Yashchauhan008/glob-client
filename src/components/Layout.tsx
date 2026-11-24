@@ -17,10 +17,12 @@ import { QuickProvider, useQuick } from './quick'
 import { VoiceProvider } from '../voice'
 import TeamSwitcher from './TeamSwitcher'
 import CallPanel from './CallPanel'
+import NotificationBell from './NotificationBell'
 
 const NAV = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/ideas', label: 'Ideas', icon: Lightbulb },
+  { to: '/messages', label: 'Messages', icon: MessageCircle },
   { to: '/qa', label: 'Q&A', icon: HelpCircle },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -128,6 +130,7 @@ export default function Layout() {
               <div className="live" title="Online now">
                 {online.map((o) => <i key={o.user_id} title={`${o.name} · ${o.route}`} style={{ background: colorFor(o.user_id) }}><Face id={o.user_id} name={o.name} /></i>)}
               </div>
+              <NotificationBell />
               <button className="theme-btn" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -167,7 +170,7 @@ export default function Layout() {
           </div>
           <Dock />
         </div>
-        <ChatBox open={chatOpen} setOpen={setChatOpen} />
+        {!pathname.startsWith('/messages') && <ChatBox open={chatOpen} setOpen={setChatOpen} />}
         <CallPanel />
       </div>
       </VoiceProvider>
