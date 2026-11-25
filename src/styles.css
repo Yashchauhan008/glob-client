@@ -895,7 +895,7 @@ img, svg, video { max-width: 100%; }
 
 /* ---- nav notification badges ---- */
 .nav-badge { position: absolute; top: -2px; left: 5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: #ff3b30; color: #fff; font-size: 10.5px; font-weight: 800; line-height: 1; border: 2px solid var(--ink); box-sizing: content-box; animation: badge-pop .25s ease-out; pointer-events: auto; z-index: 2; }
-.nav-badge.activity { background: #3b82f6; } .nav-badge.calendar { background: #f59e0b; } .nav-badge.products { background: #ef4444; }
+.nav-badge.nb-activity { background: #3b82f6; } .nav-badge.nb-calendar { background: #f59e0b; } .nav-badge.nb-products { background: #ef4444; }
 @keyframes badge-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .nav-badge { animation: none; } }
 nav.open .nav-badge { top: 8px; left: auto; right: 12px; border-color: #222225; }

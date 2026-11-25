@@ -118,7 +118,7 @@ export default function Layout() {
                     {(() => {
                       const k = ALERT_KEY[to]
                       const n = k && alerts ? alerts[k] : 0
-                      return n > 0 ? <span key={n} className={'nav-badge ' + k} title={ALERT_TIP[k](n)} aria-label={ALERT_TIP[k](n)}>{n > 9 ? '9+' : n}</span> : null
+                      return n > 0 ? <span key={n} className={'nav-badge nb-' + k} title={ALERT_TIP[k](n)} aria-label={ALERT_TIP[k](n)}>{n > 9 ? '9+' : n}</span> : null
                     })()}
                     <span className="nav-presence">
                       {unique.map((r) => <span key={r.user_id} className="nav-dot" title={`${r.name} is here`} style={{ background: colorFor(r.user_id) }}><Face id={r.user_id} name={r.name} /></span>)}
