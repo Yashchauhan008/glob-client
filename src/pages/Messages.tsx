@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Mic, Paperclip, Phone, Plus, Search, Send, Trash2, Users, Video, X } from 'lucide-react'
+import { ArrowLeft, CornerUpLeft, Mic, Paperclip, Phone, Plus, Search, Send, Smile, Trash2, Users, Video, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { usePresence } from '../presence'
 import { useCalls } from '../calls'
 import { Modal } from '../components/ui'
 import {
-  MessageBody, Pic, Ticks, clock, dayLabel, fromDm, mmss, newClientId, previewOf, uploadChatFile,
-  type ChatMsg, type Inbox, type MsgKind, type Person,
+  MessageBody, Pic, ReactBar, ReactionChips, ReplyQuote, Ticks, clock, dayLabel, fromDm, mmss, newClientId, previewOf, uploadChatFile,
+  type ChatMsg, type Inbox, type MsgKind, type Person, type Reaction,
 } from '../messaging'
 
-type Payload = { body?: string; kind: MsgKind; file_url?: string; file_name?: string; mime?: string; duration_ms?: number; client_id: string }
+type Payload = { body?: string; kind: MsgKind; file_url?: string; file_name?: string; mime?: string; duration_ms?: number; client_id: string; reply_to_id?: string }
 type Page = { items: any[]; has_more: boolean }
 
 const when = (iso?: string) => {
@@ -139,8 +139,12 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
   const [typing, setTyping] = useState(false)
   const [sendingFile, setSendingFile] = useState(false)
   const [err, setErr] = useState('')
+  const [replyTo, setReplyTo] = useState<ChatMsg | null>(null)
+  const [barFor, setBarFor] = useState<string | null>(null) // the message whose emoji bar is open
+  const inputRef = useRef<HTMLInputElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const pending = useRef(new Map<string, Payload>()) // what to resend for a failed message
+  const replySnap = useRef(new Map<string, NonNullable<ChatMsg['reply']>>()) // the quote shown on a message that is still sending
   const lastTyping = useRef(0)
   const typingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const online = !!peer && roster.some((r) => r.user_id === peer.id)
@@ -195,10 +199,12 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
       if ((dm && p.from !== peer!.id) || (!dm && p.user_id === user?.id)) return
       setTyping(true); clearTimeout(typingTimer.current); typingTimer.current = setTimeout(() => setTyping(false), 3000)
     }
-    socket.on('dm:message', onDm); socket.on('chat:message', onChat); socket.on('dm:status', onStatus)
+    const onReaction = (p: { id: string; reactions: Reaction[] }) =>
+      setMsgs((cur) => cur.map((m) => (m.id === p.id ? { ...m, reactions: p.reactions } : m)))
+    socket.on('dm:message', onDm); socket.on('chat:message', onChat); socket.on('dm:status', onStatus); socket.on('message:reaction', onReaction)
     socket.on(dm ? 'dm:typing' : 'chat:typing', onTyping)
     return () => {
-      socket.off('dm:message', onDm); socket.off('chat:message', onChat); socket.off('dm:status', onStatus)
+      socket.off('dm:message', onDm); socket.off('chat:message', onChat); socket.off('dm:status', onStatus); socket.off('message:reaction', onReaction)
       socket.off(dm ? 'dm:typing' : 'chat:typing', onTyping)
     }
   }, [socket, dm, peer, user?.id, markRead])
@@ -217,6 +223,7 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
         id: `local-${p.client_id}`, client_id: p.client_id, user_id: user!.id, name: user!.name, avatar_url: user!.avatar_url,
         body: p.body ?? '', kind: p.kind, file_url: p.file_url, file_name: p.file_name, mime: p.mime, duration_ms: p.duration_ms,
         created_at: new Date().toISOString(), status: 'sending',
+        reply_to_id: p.reply_to_id ?? null, reply: p.reply_to_id ? replySnap.current.get(p.client_id) ?? null : null, reactions: [],
       }])
     else patch(p.client_id, { status: 'sending' })
     const ok = (m: any) => { pending.current.delete(p.client_id); patch(p.client_id, { ...norm(m), status: dm ? (m.status ?? 'sent') : 'sent' }) }
@@ -239,8 +246,40 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
     const f = e.currentTarget
     const body = String(new FormData(f).get('body') || '').trim()
     if (!body) return
-    deliver({ body, kind: 'text', client_id: newClientId() })
-    f.reset(); lastTyping.current = 0
+    const cid = newClientId(); snap(cid)
+    deliver({ body, kind: 'text', client_id: cid, ...replyFields() })
+    f.reset(); lastTyping.current = 0; setReplyTo(null)
+  }
+  /** The reply the person is writing, for the next message they send (a picture or a voice note too). */
+  const replyFields = () => {
+    if (!replyTo || replyTo.id.startsWith('local-')) return {}
+    return { reply_to_id: replyTo.id }
+  }
+  const snap = (cid: string) => {
+    if (replyTo && !replyTo.id.startsWith('local-')) replySnap.current.set(cid, { id: replyTo.id, user_id: replyTo.user_id, name: replyTo.name, body: replyTo.body, kind: replyTo.kind, file_name: replyTo.file_name, duration_ms: replyTo.duration_ms })
+  }
+  const startReply = (m: ChatMsg) => {
+    if (m.id.startsWith('local-')) return
+    setReplyTo(m); setBarFor(null); inputRef.current?.focus()
+  }
+  const react = (m: ChatMsg, emoji: string) => {
+    if (m.id.startsWith('local-')) return
+    setBarFor(null)
+    const mineNow = m.reactions?.find((r) => r.user_id === user?.id)?.emoji
+    const next = mineNow === emoji ? null : emoji
+    // show it at once; the server's answer (to everyone) is the truth
+    setMsgs((cur) => cur.map((x) => (x.id === m.id
+      ? { ...x, reactions: [...(x.reactions ?? []).filter((r) => r.user_id !== user?.id), ...(next ? [{ user_id: user!.id, emoji: next }] : [])] }
+      : x)))
+    const back = () => setMsgs((cur) => cur.map((x) => (x.id === m.id ? { ...x, reactions: m.reactions } : x)))
+    if (socket?.connected) socket.timeout(8000).emit('message:react', { id: m.id, emoji: next }, (e: Error | null, r?: { ok: boolean }) => { if (e || !r?.ok) back() })
+    else api.post('/chat/react', { message_id: m.id, emoji: next }).catch(back)
+  }
+  const jumpTo = (id: string) => {
+    const el = document.getElementById(`msg-${id}`)
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1400)
   }
   const typed = () => {
     const now = Date.now()
@@ -253,7 +292,9 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
     setSendingFile(true); setErr('')
     try {
       const up = await uploadChatFile(blob, name)
-      deliver({ kind: up.kind, file_url: up.url, file_name: up.name, mime: up.mime, duration_ms: duration, client_id: newClientId() })
+      const cid = newClientId(); snap(cid)
+      deliver({ kind: up.kind, file_url: up.url, file_name: up.name, mime: up.mime, duration_ms: duration, client_id: cid, ...replyFields() })
+      setReplyTo(null)
     } catch (e) { setErr((e as Error).message) } finally { setSendingFile(false) }
   }
 
@@ -351,13 +392,24 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
           return (
             <div key={m.client_id ?? m.id}>
               {sep && <div className="conv-day"><span>{sep}</span></div>}
-              <div className={'bubble-row' + (mine ? ' mine' : '')}>
+              <div id={`msg-${m.id}`} className={'bubble-row' + (mine ? ' mine' : '') + (barFor === m.id ? ' open' : '') + (m.reactions?.length ? ' has-reacts' : '')}>
                 {!mine && <Pic id={m.user_id} name={m.name} url={m.avatar_url} size={30} />}
-                <div className={'bubble ' + m.kind}>
+                <div className={'bubble ' + m.kind} onClick={(e) => { if (m.kind !== 'call' && !(e.target as HTMLElement).closest('a,button,audio,video')) setBarFor(barFor === m.id ? null : m.id) }}
+                  onDoubleClick={() => m.kind !== 'call' && react(m, '❤️')}>
                   {!dm && !mine && <b className="bubble-name">{m.name}</b>}
+                  {m.reply && <ReplyQuote reply={m.reply} mine={mine} onJump={() => jumpTo(m.reply!.id)} />}
+                  {!m.reply && m.reply_to_id && <span className="reply-quote gone">Original message unavailable</span>}
                   <MessageBody m={m} />
                   <span className="bubble-meta">{clock(m.created_at)}{mine && <Ticks status={m.status} onRetry={() => retry(m)} />}</span>
+                  <ReactionChips list={m.reactions} me={user?.id} onToggle={(e) => react(m, e)} />
                 </div>
+                {m.kind !== 'call' && !m.id.startsWith('local-') && (
+                  <span className="bubble-acts">
+                    <button type="button" aria-label="Reply" title="Reply" onClick={() => startReply(m)}><CornerUpLeft size={15} /></button>
+                    <button type="button" aria-label="React" title="React" onClick={() => setBarFor(barFor === m.id ? null : m.id)}><Smile size={15} /></button>
+                  </span>
+                )}
+                {barFor === m.id && <ReactBar current={m.reactions?.find((r) => r.user_id === user?.id)?.emoji} onPick={(e) => react(m, e)} onReply={() => startReply(m)} />}
               </div>
             </div>
           )
@@ -375,16 +427,24 @@ function Conversation({ peer, workspaceName, onBack }: { peer?: Person; workspac
           <button type="button" className="send-btn" onClick={() => stopRec(true)} aria-label="Send voice note"><Send size={17} /></button>
         </div>
       ) : (
+        <>
+        {replyTo && (
+          <div className="reply-bar">
+            <span><b>Replying to {replyTo.user_id === user?.id ? 'yourself' : replyTo.name}</b><small>{previewOf(replyTo) || 'Message'}</small></span>
+            <button type="button" className="icon-btn" aria-label="Cancel reply" onClick={() => setReplyTo(null)}><X size={16} /></button>
+          </div>
+        )}
         <form className="conv-form" onSubmit={sendText}>
           <label className="icon-btn" title="Send a picture, video or document" aria-label="Attach">
             <Paperclip size={18} />
             <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rtf,.md,.json"
               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void sendFile(f, f.name) }} />
           </label>
-          <input name="body" placeholder={sendingFile ? 'Uploading…' : dm ? `Message ${peer!.name.split(' ')[0]}…` : 'Message everyone…'} autoComplete="off" onChange={typed} disabled={sendingFile} />
+          <input name="body" placeholder={sendingFile ? 'Uploading…' : dm ? `Message ${peer!.name.split(' ')[0]}…` : 'Message everyone…'} autoComplete="off" onChange={typed} disabled={sendingFile} ref={inputRef} onKeyDown={(e) => { if (e.key === 'Escape') setReplyTo(null) }} />
           <button type="button" className="icon-btn" onClick={startRec} aria-label="Record a voice note" title="Record a voice note"><Mic size={18} /></button>
           <button className="send-btn" aria-label="Send"><Send size={17} /></button>
         </form>
+        </>
       )}
     </div>
   )

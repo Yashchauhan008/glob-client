@@ -1,11 +1,19 @@
 import { AlertCircle, Check, CheckCheck, Clock, Download, FileText, PhoneMissed, Phone, Video } from 'lucide-react'
+import { useState } from 'react'
 import { API_URL, authHeaders, ApiError } from './api'
 import { colorFor, initials } from './presence'
 
 export type MsgKind = 'text' | 'image' | 'video' | 'audio' | 'file' | 'call'
 export type MsgStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 
+export type Reaction = { user_id: string; emoji: string }
+export type ReplyRef = { id: string; user_id: string; name: string; body: string; kind: MsgKind; file_name?: string | null; duration_ms?: number | null }
+export const QUICK_EMOJI = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+
 export type ChatMsg = {
+  reply_to_id?: string | null
+  reply?: ReplyRef | null
+  reactions?: Reaction[]
   id: string
   client_id?: string | null
   user_id: string
@@ -36,6 +44,7 @@ export const fromDm = (m: any): ChatMsg => ({
   id: m.id, client_id: m.client_id, user_id: m.sender_id, name: m.sender_name, avatar_url: m.sender_avatar,
   body: m.body, kind: m.kind, file_url: m.file_url, file_name: m.file_name, mime: m.mime, duration_ms: m.duration_ms,
   created_at: m.created_at, status: m.status, to: m.recipient_id,
+  reply_to_id: m.reply_to_id, reply: m.reply ?? null, reactions: m.reactions ?? [],
 })
 
 export const clock = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -139,4 +148,51 @@ export function browserPopup(title: string, body: string, tag: string, onClick?:
     const n = new Notification(title, { body, icon: '/favicon-32.png', tag })
     n.onclick = () => { window.focus(); onClick?.(); n.close() }
   } catch { /* blocked */ }
+}
+
+/** The small quoted box at the top of a reply. Tapping it jumps to the original. */
+export function ReplyQuote({ reply, mine, onJump }: { reply: ReplyRef; mine: boolean; onJump?: () => void }) {
+  return (
+    <button type="button" className={'reply-quote' + (mine ? ' mine' : '')} onClick={onJump} title="Go to the original message">
+      <b>{reply.name}</b>
+      <span>{previewOf(reply) || 'Message'}</span>
+    </button>
+  )
+}
+
+/** Emoji chips under a bubble: grouped, your own is highlighted, tap to add or take back. */
+export function ReactionChips({ list, me, onToggle }: { list?: Reaction[]; me?: string; onToggle: (emoji: string) => void }) {
+  if (!list?.length) return null
+  const groups = new Map<string, { n: number; mine: boolean }>()
+  for (const r of list) {
+    const g = groups.get(r.emoji) ?? { n: 0, mine: false }
+    g.n++; if (r.user_id === me) g.mine = true
+    groups.set(r.emoji, g)
+  }
+  return (
+    <div className="reacts">
+      {[...groups].map(([emoji, g]) => (
+        <button key={emoji} type="button" className={'react-chip' + (g.mine ? ' mine' : '')} onClick={() => onToggle(emoji)}>
+          {emoji}{g.n > 1 && <small>{g.n}</small>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** The little bar that appears next to a bubble: pick an emoji or reply. */
+export function ReactBar({ current, onPick, onReply }: { current?: string; onPick: (emoji: string) => void; onReply: () => void }) {
+  const [more, setMore] = useState(false)
+  return (
+    <div className="react-bar" role="toolbar">
+      {QUICK_EMOJI.map((e) => <button key={e} type="button" className={current === e ? 'on' : ''} onClick={() => onPick(e)} aria-label={`React ${e}`}>{e}</button>)}
+      <button type="button" className="more" onClick={() => setMore((v) => !v)} aria-label="More reactions">＋</button>
+      {more && (
+        <span className="react-more">
+          {['🔥', '🎉', '👏', '😍', '🤔', '👀', '✅', '💯', '😅', '🙌'].map((e) => <button key={e} type="button" onClick={() => onPick(e)}>{e}</button>)}
+        </span>
+      )}
+      <button type="button" className="reply" onClick={onReply}>Reply</button>
+    </div>
+  )
 }
